@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-three/drei": "9.107.0",
     "@react-three/fiber": "8.16.8",
     "aubiojs": "0.2.1",
     "essentia.js": "0.1.3",

@@ -1,6 +1,7 @@
 import aubio from "aubiojs";
 import { Essentia, EssentiaWASM } from 'essentia.js';
 import Meyda from "meyda";
+import useStore from "./store";
 
 const captureMicrophoneStream = async () => {
   try {
@@ -29,40 +30,28 @@ const setupTempo = async (scriptProcessor: ScriptProcessorNode, audioContext: Au
       audioContext.sampleRate
     );
 
-    const output = document.createElement('div');
-    document.body.appendChild(output);
-
     scriptProcessor.addEventListener("audioprocess", function (event) {
       if (tempo.do(event.inputBuffer.getChannelData(0))) {
-
-        output.innerText = `Tempo: ${Number(tempo.getBpm()).toFixed(0)}`;
+        useStore.setState({ tempo: tempo.getBpm().toFixed(0) });
       }
     });
   });
 }
 
 const setupKey = async (essentia: any, scriptProcessor: ScriptProcessorNode) => {
-  const output = document.createElement('div');
-  document.body.appendChild(output);
-
   scriptProcessor.addEventListener("audioprocess", function (event) {
-    // convert the float32 audio data into std::vector<float> for using with essentia algos
-    var vectorSignal = essentia.arrayToVector(event.inputBuffer.getChannelData(0));
+    const vectorSignal = essentia.arrayToVector(event.inputBuffer.getChannelData(0));
+
     if (!vectorSignal) {
       throw "onRecordingError: empty audio signal input found!";
     }
 
     const result = essentia.KeyExtractor(vectorSignal);
-    output.innerText = `Key: ${result.key}`;
+    useStore.setState({ key: result.key });
   });
 }
 
 const setupLoudness = async (audioContext: AudioContext, source: MediaStreamAudioSourceNode) => {
-  const output = document.createElement('div');
-  const output2 = document.createElement('div');
-  document.body.appendChild(output);
-  document.body.appendChild(output2);
-
   const analyzer = Meyda.createMeydaAnalyzer({
     audioContext: audioContext,
     source: source,
@@ -70,9 +59,10 @@ const setupLoudness = async (audioContext: AudioContext, source: MediaStreamAudi
     featureExtractors: ["energy", "loudness"],
     callback: (features) => {
       //console.log(features);
-
-      output.innerText = `Loudness: ${features.loudness.total}`;
-      output2.innerText = `Energy: ${features.energy}`;
+      useStore.setState({
+        energy: features.energy,
+        loudness: features.loudness.total
+      });
     },
   });
   analyzer.start();
@@ -81,19 +71,21 @@ const setupLoudness = async (audioContext: AudioContext, source: MediaStreamAudi
 const setupFrequency = async (analyser: AnalyserNode) => {
   const dataArray = new Float32Array(analyser.fftSize);
 
-  const output = document.createElement('div');
-  document.body.appendChild(output);
-
   const tick = () => {
     window.requestAnimationFrame(tick);
 
     analyser.getFloatFrequencyData(dataArray);
-    output.innerText = `Frequency: ${dataArray.map(v => v * 200.0).reduce((a, b) => a + b) / dataArray.length}`;
+    //    output.innerText = `Frequency: ${dataArray.map(v => v * 200.0).reduce((a, b) => a + b) / dataArray.length}`;
   }
   tick();
 }
 
+let hasLaunched = false;
 export const launchAudioProcessing = async () => {
+  if (hasLaunched) {
+    return;
+  }
+
   // Example usage
   const stream = await captureMicrophoneStream();
 
@@ -101,6 +93,7 @@ export const launchAudioProcessing = async () => {
     return;
   }
 
+  hasLaunched = true;
   const audioContext = new AudioContext({
     sampleRate: 44100,
   });
