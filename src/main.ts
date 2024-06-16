@@ -40,33 +40,37 @@ const setupTempo = async (scriptProcessor: ScriptProcessorNode, audioContext: Au
   });
 }
 
-const setupBeatDetection = async (audioContext: AudioContext) => {
-  const SAMPLE_SIZE = 2048;
-  const bpm = new BeatDetektor(85, 169);
-  const beatDetektorKick = new BeatDetektor.modules.vis.BassKick();
+const setupKey = async (essentia: any, scriptProcessor: ScriptProcessorNode) => {
+  const output = document.createElement('div');
+  document.body.appendChild(output);
 
-  const analyser = audioContext.createAnalyser();
-  analyser.fftSize = SAMPLE_SIZE;
-
-  let data: Iterable<number> = []
-  const tick = () => {
-    const tempdata = new Uint8Array(SAMPLE_SIZE);
-    analyser.getByteFrequencyData(tempdata);
-    data = [...data, ...tempdata];
-
-    const time = new Date().getTime();
-    bpm.process(time / 1000, Uint8Array.from(data));
-
-    beatDetektorKick.process(bpm);
-
-    const kick = beatDetektorKick.isKick();
-    if (kick) {
-      console.log('KICK', bpm.current_bpm)
+  scriptProcessor.addEventListener("audioprocess", function (event) {
+    // convert the float32 audio data into std::vector<float> for using with essentia algos
+    var vectorSignal = essentia.arrayToVector(event.inputBuffer.getChannelData(0));
+    if (!vectorSignal) {
+      throw "onRecordingError: empty audio signal input found!";
     }
-    window.requestAnimationFrame(tick);
-  }
 
-  tick();
+    const result = essentia.KeyExtractor(vectorSignal);
+    output.innerText = `Key: ${result.key}`;
+  });
+}
+
+const setupLoudness = async (essentia: any, scriptProcessor: ScriptProcessorNode) => {
+  const output = document.createElement('div');
+  document.body.appendChild(output);
+
+  scriptProcessor.addEventListener("audioprocess", function (event) {
+    // convert the float32 audio data into std::vector<float> for using with essentia algos
+    var vectorSignal = essentia.arrayToVector(event.inputBuffer.getChannelData(0));
+    if (!vectorSignal) {
+      throw "onRecordingError: empty audio signal input found!";
+    }
+
+    const result = essentia.Loudness(vectorSignal);
+
+    output.innerText = `Loudness: ${result.loudness}`;
+  });
 }
 
 const setupFrequency = async (analyser: AnalyserNode) => {
@@ -92,7 +96,9 @@ const launch = async () => {
     return;
   }
 
-  const audioContext = new AudioContext();
+  const audioContext = new AudioContext({
+    sampleRate: 44100,
+  });
 
   // Create a MediaStreamSource node from the microphone input stream
   const audioSource = audioContext.createMediaStreamSource(stream);
@@ -103,14 +109,15 @@ const launch = async () => {
 
   const analyser = audioContext.createAnalyser();
   analyser.connect(audioContext.destination);
-  analyser.fftSize = 2048;
+  analyser.fftSize = 1024;
   audioSource.connect(analyser);
 
-  //audioSource.connect(audioContext.destination);
-  console.log(Essentia, EssentiaWASM)
   const essentia = new Essentia(EssentiaWASM.EssentiaWASM);
+
+  //audioSource.connect(audioContext.destination);
   setupTempo(scriptProcessor, audioContext);
-  setupBeatDetection(audioContext);
+  setupKey(essentia, scriptProcessor);
+  setupLoudness(essentia, scriptProcessor);
   setupFrequency(analyser);
 }
 
