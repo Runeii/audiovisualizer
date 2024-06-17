@@ -2,7 +2,6 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Text } from '@react-three/drei';
 import useStore from '../store';
 import Scene from './Scene';
-import { PerspectiveCamera } from 'three';
 
 const World = () => {
   const tempo = useStore(state => state.tempo);
@@ -17,7 +16,7 @@ const World = () => {
     }}>
       <Scene />
       <OrbitControls />
-      <ambientLight intensity={10} />
+
 
       <mesh>
         <boxGeometry args={[1, 1, 1]} />

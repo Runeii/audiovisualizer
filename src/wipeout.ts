@@ -22,6 +22,9 @@ import {
   PlaneGeometry,
   SphereGeometry,
   BufferAttribute,
+  Side,
+  CanvasTexture,
+  RepeatWrapping,
 } from 'three';
 import Struct from './struct';
 import { Geometry, OrbitControls } from 'three-stdlib';
@@ -424,14 +427,29 @@ type WipeoutObject = {
   byteLength: number
 }
 
+type PolygonHeader = {
+  type: number;
+  subtype: number;
+};
+
+type UV = {
+  u: number;
+  v: number;
+};
+
 type Polygon = {
-  indices: number[],
-  normal: Vector3,
-  tile: number,
-  flags: number,
-  color: number
-  texture?: number,
-}
+  header: PolygonHeader;
+  unknown?: number[]; // For UNKNOWN_00 and others with unknown fields
+  indices?: number[]; // For indices in various polygons
+  texture?: number; // For textured polygons
+  uv?: UV[]; // For textured polygons with UV coordinates
+  unknown2?: number[]; // For additional unknown fields in textured polygons
+  color?: number; // For polygons with face color
+  colors?: number[]; // For polygons with vertex colors
+  index?: number; // For SPRITE_TOP_ANCHOR
+  width?: number; // For SPRITE_TOP_ANCHOR
+  height?: number; // For SPRITE_TOP_ANCHOR
+};
 
 const createBufferGeometryDataObject = (bufferGeometry) => {
   const dataObject = {
@@ -490,122 +508,152 @@ const createBufferGeometryDataObject = (bufferGeometry) => {
 const createModelFromObject = (
   object: WipeoutObject,
   sceneMaterial: any
-): Object3D => {
-  const model = new Object3D();
+): Mesh => {
   const geometry = new BufferGeometry();
-
-  model.position.set(object.header.position.x, -object.header.position.y, -object.header.position.z);
 
   // Set positions
   const positions = object.vertices.map((vertex: any) => [vertex.x, -vertex.y, -vertex.z]).flat();
   geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
 
-
-  // Construct UVs
   const nullVector = new Vector2(0, 0);
-  const faceVertexUvs = object.polygons.map((polygon: Polygon) => {
-    if (!polygon.indices) {
-      return;
-    }
-    let uvs = [nullVector, nullVector, nullVector, nullVector]
-    if (polygon.texture) {
-      const img = sceneMaterial[polygon.texture].map.image;
-      uvs = polygon.uv.map(({ u, v }: { u: number, v: number }) => new Vector2(u / img.width, 1 - v / img.height));
-    }
-
-    const standardUvs = [uvs[2], uvs[1], uvs[0]];
-    if (polygon.indices.length === 4) {
-      return [...standardUvs, uvs[2], uvs[3], uvs[1]];
-    }
-    return standardUvs;
-  }).flat().flatMap((uv: Vector2) => [uv.x, uv.y]);
-  geometry.setAttribute('uv', new Float32BufferAttribute(faceVertexUvs, 2));
-
-  // Construct indices
-  const indices: number[] = object.polygons.map(({ indices }: Polygon) => {
-    const standardIndices = [indices[2], indices[1], indices[0]];
-    if (indices.length === 4) {
-      return [...standardIndices, indices[2], indices[3], indices[1]];
-    }
-    return standardIndices;
-  }).flat();
-  geometry.setIndex(new BufferAttribute(new Uint16Array(indices), 1));
-
-  // Construct colors
   const whiteColor = new Color(1, 1, 1);
-  const colors: number[] = object.polygons.map(({ color, colors, indices }: Polygon) => {
+
+  const initialValue: {
+    faceVertexUvs: number[],
+    indices: number[],
+    groups: { start: number, count: number, index: number }[],
+    colors: number[],
+    startOffset: number
+  } = {
+    faceVertexUvs: [],
+    indices: [],
+    groups: [],
+    colors: [],
+    startOffset: 0,
+  }
+
+  const result = object.polygons.reduce((previousResult, polygon: Polygon) => {
+    if (polygon.header.type === POLYGON_TYPE.SPRITE_BOTTOM_ANCHOR || polygon.header.type === POLYGON_TYPE.SPRITE_TOP_ANCHOR) {
+      console.warn('Found a sprite, not currently supported!!');
+      return previousResult;
+    }
+
+    if (!polygon.indices) {
+      return previousResult;
+    }
+
+    // UVs
+    let uvs = [nullVector, nullVector, nullVector, nullVector];
+    if (polygon.texture !== undefined) {
+      const img = sceneMaterial[polygon.texture].map.image;
+      uvs = polygon.uv.map(({ u, v }) => new Vector2(u / img.width, 1 - v / img.height));
+    }
+    const standardUvs = [uvs[2], uvs[1], uvs[0]];
+    const polygonUvs = polygon.indices.length === 4
+      ? [...standardUvs, uvs[2], uvs[3], uvs[1]]
+      : standardUvs;
+
+    // Indices
+    const standardIndices = [polygon.indices[2], polygon.indices[1], polygon.indices[0]];
+    const polygonIndices = polygon.indices.length === 4
+      ? [...standardIndices, polygon.indices[2], polygon.indices[3], polygon.indices[1]]
+      : standardIndices;
+    console.log(polygonIndices, polygon.indices)
+    // Colors
     const constructedColors = [whiteColor, whiteColor, whiteColor, whiteColor];
-    if (color || colors) {
-      for (let j = 0; j < indices.length; j++) {
-        constructedColors[j] = int32ToColor(color || colors[j]);
+    if (polygon.color || polygon.colors) {
+      for (let j = 0; j < polygon.indices.length; j++) {
+        constructedColors[j] = int32ToColor(polygon.color || polygon.colors[j]);
       }
     }
-
     const standardColors = [constructedColors[2], constructedColors[1], constructedColors[0]];
-    if (indices.length === 4) {
-      return [...standardColors, constructedColors[2], constructedColors[3], constructedColors[1]];
-    }
+    const polygonColors = polygon.indices.length === 4
+      ? [...standardColors, constructedColors[2], constructedColors[3], constructedColors[1]]
+      : standardColors;
 
-    return standardColors;
-  }).flat().flatMap((Color: Color) => [Color.r, Color.g, Color.b]);
-  geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3));
-
-  // Construct groups
-  const groups: {
-    start: number,
-    count: number,
-    index: number
-  }[] = []
-  object.polygons.reduce((startOffset, { indices, texture }) => {
-    if (!indices) {
-      return startOffset;
-    }
-    const materialIndex = texture ?? sceneMaterial.length - 1;
-    const count = indices.length === 4 ? 6 : 3
-    groups.push({
-      start: startOffset,
+    // Groups
+    const materialIndex = polygon.texture ?? sceneMaterial.length - 1;
+    const count = polygon.indices.length === 4 ? 6 : 3;
+    const polygonGroups = {
+      start: previousResult.startOffset,
       count,
       index: materialIndex
-    });
-    return startOffset + count;
-  }, 0);
+    }
+    const newStartOffset = previousResult.startOffset + count;
+
+    return {
+      faceVertexUvs: [
+        ...previousResult.faceVertexUvs,
+        ...polygonUvs.flatMap(uv => [uv.x, uv.y])
+      ],
+      indices: [
+        ...previousResult.indices,
+        ...polygonIndices
+      ],
+      groups: [
+        ...previousResult.groups,
+        polygonGroups,
+      ],
+      colors: [
+        ...previousResult.colors,
+        ...polygonColors.flatMap(color => [color.r, color.g, color.b])],
+      startOffset: newStartOffset
+    };
+  }, initialValue);
+
+  const { faceVertexUvs, indices, groups, colors } = result;
+  console.log(faceVertexUvs)
+  geometry.setAttribute('uv', new Float32BufferAttribute(faceVertexUvs, 2));
+  geometry.setIndex(new BufferAttribute(new Uint16Array(indices), 1));
+  geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3));
+
   groups.forEach(({ start, count, index }) => {
     geometry.addGroup(start, count, index);
   });
-
+  console.log(sceneMaterial)
   geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3));
 
   // Compute Normals
   geometry.computeVertexNormals();
 
   const mesh = new Mesh(geometry, sceneMaterial);
-  model.add(mesh);
+  mesh.position.set(object.header.position.x, -object.header.position.y, -object.header.position.z);
 
-  return model;
+  positions.forEach((position, index) => {
+    if (index % 3 !== 0) {
+      return;
+    }
+    const sphere = new SphereGeometry(50);
+    const spheremesh = new Mesh(sphere, new MeshBasicMaterial({ color: 0xff0000, side: DoubleSide }));
+    spheremesh.position.set(positions[index], positions[index + 1], positions[index + 2]);
+    console.log(spheremesh.position)
+    mesh.add(spheremesh);
+  })
+  return mesh;
 }
 
-const createMeshFaceMaterial = (images: HTMLCanvasElement[], vertexColors: boolean, side: number): Material[] => {
+const createMeshFaceMaterial = (images: HTMLCanvasElement[], vertexColors: boolean, side: Side): Material[] => {
   const materials: MeshBasicMaterial[] = [];
 
-  const baseMaterial = new MeshBasicMaterial({
-    wireframe: false,
-    transparent: false,
-  });
+  const baseMaterial = new MeshBasicMaterial({ wireframe: false });
   baseMaterial.vertexColors = vertexColors;
 
   images.forEach((image) => {
-    const texture = new Texture(image);
+    const texture = new CanvasTexture(image);
     texture.minFilter = NearestFilter;
     texture.magFilter = NearestFilter;
+    texture.wrapS = texture.wrapT = RepeatWrapping;
+    texture.repeat.set(4, 2)
     texture.needsUpdate = true;
 
     const material = new MeshBasicMaterial({
       map: texture,
       vertexColors,
-      side: side === FrontSide ? FrontSide : side === DoubleSide ? DoubleSide : BackSide,
+      side,
       alphaTest: 0.5,
     });
 
+    material.needsUpdate = true;
     materials.push(material);
   });
 
@@ -770,6 +818,7 @@ const readImage = (buffer: ArrayBuffer): HTMLCanvasElement => {
   }
 
   ctx.putImageData(pixels, 0, 0);
+  document.body.appendChild(canvas);
   return canvas;
 };
 
@@ -920,8 +969,9 @@ const createSceneFromFiles = (files: any, modify?: any) => {
   const sceneMaterial = createMeshFaceMaterial(images, true, FrontSide);
 
   const objects = readObjects(files.objects);
-  let model;
+  let model: Mesh;
   objects.forEach((object, i) => {
+    console.log('iterate')
     model = createModelFromObject(object, sceneMaterial);
     if (modify && modify.scale) {
       model.scale.set(modify.scale, modify.scale, modify.scale);
@@ -933,7 +983,7 @@ const createSceneFromFiles = (files: any, modify?: any) => {
       model.position.add({ x: (i + 0.5 - objects.length / 2) * modify.space, y: 0, z: 0 });
     }
   });
-  return model as unknown as Object3D;
+  return model;
 };
 
 const createTrack = (files: any): Mesh => {
@@ -1031,7 +1081,7 @@ const createTrack = (files: any): Mesh => {
 };
 
 
-const loadTrack = async (path: string, loadTEXFile: boolean): Promise<Record<string, Object3D>> => {
+const loadTrack = async (path: string, loadTEXFile: boolean): Promise<Record<string, Mesh>> => {
 
   const sky = createSceneFromFiles(await loadBinaries({
     textures: `${path}/SKY.CMP`,

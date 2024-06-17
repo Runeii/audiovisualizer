@@ -25,7 +25,7 @@ const Scene = () => {
 
   return (
     <>
-        <primitive object={mesh} />
+      <primitive object={mesh} />
     </>
   );
 }
