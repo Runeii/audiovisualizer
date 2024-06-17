@@ -21,9 +21,10 @@ import {
   BufferGeometry,
   PlaneGeometry,
   SphereGeometry,
+  BufferAttribute,
 } from 'three';
 import Struct from './struct';
-import { OrbitControls } from 'three-stdlib';
+import { Geometry, OrbitControls } from 'three-stdlib';
 import HermiteCurve3 from './hermiteCurve3';
 // ----------------------------------------------------------------------------
 // Wipeout Data Types
@@ -411,8 +412,83 @@ const animate = (
 
 const int32ToColor = (v: number): Color => new Color(((v >> 24) & 0xff) / 0x80, ((v >> 16) & 0xff) / 0x80, ((v >> 8) & 0xff) / 0x80);
 
+type WipeoutObject = {
+  header: {
+    name: string,
+    vertexCount: number,
+    polygonCount: number,
+    position: Vector3
+  },
+  vertices: Vector3[],
+  polygons: Polygon[],
+  byteLength: number
+}
+
+type Polygon = {
+  indices: number[],
+  normal: Vector3,
+  tile: number,
+  flags: number,
+  color: number
+  texture?: number,
+}
+
+const createBufferGeometryDataObject = (bufferGeometry) => {
+  const dataObject = {
+    vertices: [],
+    faces: [],
+    faceVertexUvs: [],
+    colors: [],
+    indices: [],
+    uvs: []
+  };
+
+  // Extract vertices
+  const positionAttribute = bufferGeometry.getAttribute('position');
+  for (let i = 0; i < positionAttribute.count; i++) {
+    dataObject.vertices.push([positionAttribute.getX(i), positionAttribute.getY(i), positionAttribute.getZ(i)]);
+  }
+
+  // Extract indices
+  const index = bufferGeometry.getIndex();
+  if (index) {
+    for (let i = 0; i < index.count; i += 3) {
+      dataObject.faces.push([index.getX(i), index.getX(i + 1), index.getX(i + 2)]);
+      dataObject.indices.push(index.getX(i), index.getX(i + 1), index.getX(i + 2));
+    }
+  }
+
+  // Extract UVs
+  const uvAttribute = bufferGeometry.getAttribute('uv');
+  if (uvAttribute) {
+    for (let i = 0; i < uvAttribute.count; i++) {
+      dataObject.uvs.push([uvAttribute.getX(i), uvAttribute.getY(i)]);
+    }
+
+    // Group UVs into faces
+    for (let i = 0; i < uvAttribute.count; i += 3) {
+      dataObject.faceVertexUvs.push([
+        [uvAttribute.getX(i), uvAttribute.getY(i)],
+        [uvAttribute.getX(i + 1), uvAttribute.getY(i + 1)],
+        [uvAttribute.getX(i + 2), uvAttribute.getY(i + 2)]
+      ]);
+    }
+  }
+
+  // Extract colors
+  const colorAttribute = bufferGeometry.getAttribute('color');
+  if (colorAttribute) {
+    for (let i = 0; i < colorAttribute.count; i++) {
+      dataObject.colors.push([colorAttribute.getX(i), colorAttribute.getY(i), colorAttribute.getZ(i)]);
+    }
+  }
+
+  return dataObject;
+};
+
+
 const createModelFromObject = (
-  object: any,
+  object: WipeoutObject,
   sceneMaterial: any
 ): Object3D => {
   const model = new Object3D();
@@ -420,83 +496,102 @@ const createModelFromObject = (
 
   model.position.set(object.header.position.x, -object.header.position.y, -object.header.position.z);
 
-  const vertices = new Float32Array(object.vertices.length * 3);
-  object.vertices.forEach((vertex: any, i: number) => {
-    vertices[i * 3] = vertex.x;
-    vertices[i * 3 + 1] = -vertex.y;
-    vertices[i * 3 + 2] = -vertex.z;
-  });
-  geometry.setAttribute('position', new Float32BufferAttribute(vertices, 3));
+  // Set positions
+  const positions = object.vertices.map((vertex: any) => [vertex.x, -vertex.y, -vertex.z]).flat();
+  geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
 
-  const indices: number[] = [];
-  const colors: number[] = [];
-  const uvs: number[] = [];
 
-  object.polygons.forEach((p: any) => {
-    if (
-      p.header.type === POLYGON_TYPE.SPRITE_BOTTOM_ANCHOR ||
-      p.header.type === POLYGON_TYPE.SPRITE_TOP_ANCHOR
-    ) {
-      const v = geometry.attributes.position.array.slice(p.index * 3, p.index * 3 + 3);
-      const color = int32ToColor(p.color);
-      const yOffset = p.header.type === POLYGON_TYPE.SPRITE_BOTTOM_ANCHOR
-        ? p.height / 2
-        : -p.height / 2;
+  // Construct UVs
+  const nullVector = new Vector2(0, 0);
+  const faceVertexUvs = object.polygons.map((polygon: Polygon) => {
+    if (!polygon.indices) {
+      return;
+    }
+    let uvs = [nullVector, nullVector, nullVector, nullVector]
+    if (polygon.texture) {
+      const img = sceneMaterial[polygon.texture].map.image;
+      uvs = polygon.uv.map(({ u, v }: { u: number, v: number }) => new Vector2(u / img.width, 1 - v / img.height));
+    }
 
-      const spriteMaterial = new MeshBasicMaterial({
-        map: sceneMaterial[p.texture].map,
-        color: color,
-        alphaTest: 0.5,
-      });
-      const spriteMesh = new Mesh(new PlaneGeometry(p.width, p.height), spriteMaterial);
+    const standardUvs = [uvs[2], uvs[1], uvs[0]];
+    if (polygon.indices.length === 4) {
+      return [...standardUvs, uvs[2], uvs[3], uvs[1]];
+    }
+    return standardUvs;
+  }).flat().flatMap((uv: Vector2) => [uv.x, uv.y]);
+  geometry.setAttribute('uv', new Float32BufferAttribute(faceVertexUvs, 2));
 
-      const sprite = new Object3D();
-      sprite.position.set(v[0], v[1] + yOffset, v[2]);
-      sprite.add(spriteMesh);
-      model.add(sprite);
-    } else if (p.indices) {
-      const materialIndex = typeof p.texture !== 'undefined' ? p.texture : sceneMaterial.flatMaterialIndex;
-      const c = [new Color(1, 1, 1), new Color(1, 1, 1), new Color(1, 1, 1), new Color(1, 1, 1)];
-      const uv = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
+  // Construct indices
+  const indices: number[] = object.polygons.map(({ indices }: Polygon) => {
+    const standardIndices = [indices[2], indices[1], indices[0]];
+    if (indices.length === 4) {
+      return [...standardIndices, indices[2], indices[3], indices[1]];
+    }
+    return standardIndices;
+  }).flat();
+  geometry.setIndex(new BufferAttribute(new Uint16Array(indices), 1));
 
-      if (typeof p.texture !== 'undefined') {
-        const img = sceneMaterial[materialIndex].map.image;
-        for (let j = 0; j < p.uv.length; j++) {
-          uv[j].set(p.uv[j].u / img.width, 1 - p.uv[j].v / img.height);
-        }
-      }
-
-      if (p.color || p.colors) {
-        for (let j = 0; j < p.indices.length; j++) {
-          c[j].copy(int32ToColor(p.color || p.colors[j]));
-        }
-      }
-
-      indices.push(p.indices[0], p.indices[1], p.indices[2]);
-      colors.push(c[0].r, c[0].g, c[0].b, c[1].r, c[1].g, c[1].b, c[2].r, c[2].g, c[2].b);
-      uvs.push(uv[0].x, uv[0].y, uv[1].x, uv[1].y, uv[2].x, uv[2].y);
-
-      if (p.indices.length === 4) {
-        indices.push(p.indices[2], p.indices[3], p.indices[0]);
-        colors.push(c[2].r, c[2].g, c[2].b, c[3].r, c[3].g, c[3].b, c[0].r, c[0].g, c[0].b);
-        uvs.push(uv[2].x, uv[2].y, uv[3].x, uv[3].y, uv[0].x, uv[0].y);
+  // Construct colors
+  const whiteColor = new Color(1, 1, 1);
+  const colors: number[] = object.polygons.map(({ color, colors, indices }: Polygon) => {
+    const constructedColors = [whiteColor, whiteColor, whiteColor, whiteColor];
+    if (color || colors) {
+      for (let j = 0; j < indices.length; j++) {
+        constructedColors[j] = int32ToColor(color || colors[j]);
       }
     }
+
+    const standardColors = [constructedColors[2], constructedColors[1], constructedColors[0]];
+    if (indices.length === 4) {
+      return [...standardColors, constructedColors[2], constructedColors[3], constructedColors[1]];
+    }
+
+    return standardColors;
+  }).flat().flatMap((Color: Color) => [Color.r, Color.g, Color.b]);
+  geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3));
+
+  // Construct groups
+  const groups: {
+    start: number,
+    count: number,
+    index: number
+  }[] = []
+  object.polygons.reduce((startOffset, { indices, texture }) => {
+    if (!indices) {
+      return startOffset;
+    }
+    const materialIndex = texture ?? sceneMaterial.length - 1;
+    const count = indices.length === 4 ? 6 : 3
+    groups.push({
+      start: startOffset,
+      count,
+      index: materialIndex
+    });
+    return startOffset + count;
+  }, 0);
+  groups.forEach(({ start, count, index }) => {
+    geometry.addGroup(start, count, index);
   });
 
-  geometry.setIndex(indices);
-  geometry.setAttribute('color', new Float32BufferAttribute(colors, 3));
-  geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
+  geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3));
 
-  if (indices.length > 0) {
-    const mesh = new Mesh(geometry, sceneMaterial);
-    model.add(mesh);
-  }
+  // Compute Normals
+  geometry.computeVertexNormals();
+
+  const mesh = new Mesh(geometry, sceneMaterial);
+  model.add(mesh);
 
   return model;
 }
+
 const createMeshFaceMaterial = (images: HTMLCanvasElement[], vertexColors: boolean, side: number): Material[] => {
   const materials: MeshBasicMaterial[] = [];
+
+  const baseMaterial = new MeshBasicMaterial({
+    wireframe: false,
+    transparent: false,
+  });
+  baseMaterial.vertexColors = vertexColors;
 
   images.forEach((image) => {
     const texture = new Texture(image);
@@ -506,13 +601,15 @@ const createMeshFaceMaterial = (images: HTMLCanvasElement[], vertexColors: boole
 
     const material = new MeshBasicMaterial({
       map: texture,
-      vertexColors: vertexColors ? true : false,
+      vertexColors,
       side: side === FrontSide ? FrontSide : side === DoubleSide ? DoubleSide : BackSide,
       alphaTest: 0.5,
     });
 
     materials.push(material);
   });
+
+  materials.push(baseMaterial) - 1;
 
   return materials;
 };
@@ -820,12 +917,12 @@ const getSectionPosition = (section: any, faces: any[], vertices: Vector3[]): Ve
 const createSceneFromFiles = (files: any, modify?: any) => {
   const rawImages = files.textures ? unpackImages(files.textures) : [];
   const images = rawImages.map(readImage);
-  const sceneMaterial = createMeshFaceMaterial(images, false, FrontSide);
+  const sceneMaterial = createMeshFaceMaterial(images, true, FrontSide);
 
   const objects = readObjects(files.objects);
-  const mesh = new Object3D();
+  let model;
   objects.forEach((object, i) => {
-    const model = createModelFromObject(object, sceneMaterial);
+    model = createModelFromObject(object, sceneMaterial);
     if (modify && modify.scale) {
       model.scale.set(modify.scale, modify.scale, modify.scale);
     }
@@ -835,13 +932,11 @@ const createSceneFromFiles = (files: any, modify?: any) => {
     if (modify && modify.space) {
       model.position.add({ x: (i + 0.5 - objects.length / 2) * modify.space, y: 0, z: 0 });
     }
-    mesh.add(model);
   });
-
-  return mesh;
+  return model as unknown as Object3D;
 };
 
-const createTrack = (files: any): Object3D => {
+const createTrack = (files: any): Mesh => {
   const rawImages = unpackImages(files.textures);
   const images = rawImages.map(readImage);
 
@@ -864,7 +959,7 @@ const createTrack = (files: any): Object3D => {
   });
 
   const trackMaterial = createMeshFaceMaterial(composedImages, true, DoubleSide);
-  const model = new Object3D();
+
   const geometry = new BufferGeometry();
 
   const vertexCount = files.vertices.byteLength / TrackVertex.byteLength;
@@ -929,62 +1024,22 @@ const createTrack = (files: any): Object3D => {
   geometry.setDrawRange(0, indices.length);
   geometry.computeVertexNormals();
 
-
   const mesh = new Mesh(geometry, trackMaterial);
   mesh.geometry.computeBoundingSphere();
-  model.add(mesh);
 
-  const sphereGeometry = new SphereGeometry(mesh.geometry.boundingSphere?.radius, 32, 32);
-  const sphereMaterial = new MeshBasicMaterial({ color: 0x00ff00, side: DoubleSide, wireframe: true });
-  const sphereMesh = new Mesh(sphereGeometry, sphereMaterial);
-  sphereMesh.position.copy(mesh.geometry.boundingSphere?.center ?? new Vector3());
-  model.add(sphereMesh);
-
-  const extractVertices = (geometry: BufferGeometry): Vector3[] => {
-    const positionAttribute = geometry.getAttribute('position') as Float32BufferAttribute;
-    const vertices: Vector3[] = [];
-
-    for (let i = 0; i < positionAttribute.count; i++) {
-      const vertex = new Vector3();
-      vertex.fromBufferAttribute(positionAttribute, i);
-      vertices.push(vertex);
-    }
-
-    return vertices;
-  };
-
-  const cameraSpline = createCameraSpline(files.sections, faces, extractVertices(geometry));
-
-  return model;
+  return mesh;
 };
 
+
 const loadTrack = async (path: string, loadTEXFile: boolean): Promise<Record<string, Object3D>> => {
-  const scene = createSceneFromFiles(await loadBinaries({
-    textures: `${path}/SCENE.CMP`,
-    objects: `${path}/SCENE.PRM`
-  }));
 
   const sky = createSceneFromFiles(await loadBinaries({
     textures: `${path}/SKY.CMP`,
     objects: `${path}/SKY.PRM`
   }), { scale: 48 });
 
-  const trackFiles = {
-    textures: `${path}/LIBRARY.CMP`,
-    textureIndex: `${path}/LIBRARY.TTF`,
-    vertices: `${path}/TRACK.TRV`,
-    faces: `${path}/TRACK.TRF`,
-    sections: `${path}/TRACK.TRS`
-  };
-  if (loadTEXFile) {
-    trackFiles.trackTexture = `${path}/TRACK.TEX`;
-  }
-  const track = createTrack(await loadBinaries(trackFiles));
-
   return {
-    scene,
     sky,
-    track
   }
 };
 
