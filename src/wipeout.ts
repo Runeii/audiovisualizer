@@ -4,7 +4,7 @@
 import {
   WebGLRenderer,
   PerspectiveCamera,
-  Vector3 as Vector3Three,
+  Vector3,
   Scene,
   Color,
   Mesh,
@@ -15,12 +15,12 @@ import {
   Vector2,
   DoubleSide,
   FrontSide,
-  MeshStandardMaterial,
   BackSide,
   Material,
   Float32BufferAttribute,
   BufferGeometry,
   PlaneGeometry,
+  SphereGeometry,
 } from 'three';
 import Struct from './struct';
 import { OrbitControls } from 'three-stdlib';
@@ -106,7 +106,7 @@ const TRACK_SECTION_FLAGS = {
 
 // .PRM Files ---------------------------------------------
 
-const Vector3 = Struct.create(
+const WipeoutVector3 = Struct.create(
   Struct.int32('x'),
   Struct.int32('y'),
   Struct.int32('z')
@@ -133,9 +133,9 @@ const ObjectHeader = Struct.create(
   Struct.skip(20),
   Struct.uint16('index1'),
   Struct.skip(28),
-  Struct.struct('origin', Vector3),
+  Struct.struct('origin', WipeoutVector3),
   Struct.skip(20),
-  Struct.struct('position', Vector3),
+  Struct.struct('position', WipeoutVector3),
   Struct.skip(16)
 );
 
@@ -282,7 +282,7 @@ const createCameras = (width: number, height: number) => {
   camera.rotation.order = 'YZX';
 
   const splineCamera = new PerspectiveCamera(84, window.innerWidth / window.innerHeight, 64, 2048576);
-  (splineCamera as any).currentLookAt = new Vector3Three(0, 0, 0);
+  (splineCamera as any).currentLookAt = new Vector3(0, 0, 0);
   (splineCamera as any).roll = 0;
   splineCamera.rotation.order = 'YZX';
 
@@ -332,7 +332,7 @@ const updateSplineCamera = (splineCamera: PerspectiveCamera, cameraSpline: Hermi
   roll += (roll > Math.PI) ? -Math.PI * 2 : (roll < -Math.PI) ? Math.PI * 2 : 0;
 
   (splineCamera as any).roll = (splineCamera as any).roll * 0.95 + (roll) * 0.1;
-  splineCamera.up = (new Vector3Three(0, 1, 0)).applyAxisAngle(
+  splineCamera.up = (new Vector3(0, 1, 0)).applyAxisAngle(
     splineCamera.position.clone().sub((splineCamera as any).currentLookAt).normalize(),
     (splineCamera as any).roll * 0.25
   );
@@ -496,7 +496,7 @@ const createModelFromObject = (
   return model;
 }
 const createMeshFaceMaterial = (images: HTMLCanvasElement[], vertexColors: boolean, side: number): Material[] => {
-  const materials: MeshStandardMaterial[] = [];
+  const materials: MeshBasicMaterial[] = [];
 
   images.forEach((image) => {
     const texture = new Texture(image);
@@ -504,7 +504,7 @@ const createMeshFaceMaterial = (images: HTMLCanvasElement[], vertexColors: boole
     texture.magFilter = NearestFilter;
     texture.needsUpdate = true;
 
-    const material = new MeshStandardMaterial({
+    const material = new MeshBasicMaterial({
       map: texture,
       vertexColors: vertexColors ? true : false,
       side: side === FrontSide ? FrontSide : side === DoubleSide ? DoubleSide : BackSide,
@@ -747,11 +747,11 @@ const readObject = (buffer: ArrayBuffer, offset: number): any => {
   };
 };
 
-const createCameraSpline = (buffer: ArrayBuffer, faces: any[], vertices: Vector3Three[]): HermiteCurve3 => {
+const createCameraSpline = (buffer: ArrayBuffer, faces: any[], vertices: Vector3[]): HermiteCurve3 => {
   const sectionCount = buffer.byteLength / TrackSection.byteLength;
   const sections = TrackSection.readStructs(buffer, 0, sectionCount);
 
-  const cameraPoints: Vector3Three[] = [];
+  const cameraPoints: Vector3[] = [];
   const jumpIndexes: number[] = [];
 
   let index = 0;
@@ -800,9 +800,9 @@ const createCameraSpline = (buffer: ArrayBuffer, faces: any[], vertices: Vector3
   return cameraSpline;
 };
 
-const getSectionPosition = (section: any, faces: any[], vertices: Vector3Three[]): Vector3Three => {
+const getSectionPosition = (section: any, faces: any[], vertices: Vector3[]): Vector3 => {
   let verticescount = 0;
-  const position = new Vector3Three();
+  const position = new Vector3();
   for (let i = section.firstFace; i < section.firstFace + section.numFaces; i++) {
     const face = faces[i];
     if (face.flags & TRACK_FACE_FLAGS.TRACK) {
@@ -884,6 +884,8 @@ const createTrack = (files: any): Object3D => {
   const indices: number[] = [];
   const colors: number[] = [];
   const uvs: number[] = [];
+  const normals: number[] = [];
+
   faces.forEach((face: any) => {
     const color = int32ToColor(face.color);
 
@@ -905,21 +907,45 @@ const createTrack = (files: any): Object3D => {
     );
 
     colors.push(color.r, color.g, color.b, color.r, color.g, color.b, color.r, color.g, color.b, color.r, color.g, color.b);
+
+    // Compute normals for flat shading
+    const v0 = new Vector3(vertices[face.indices[0] * 3], vertices[face.indices[0] * 3 + 1], vertices[face.indices[0] * 3 + 2]);
+    const v1 = new Vector3(vertices[face.indices[1] * 3], vertices[face.indices[1] * 3 + 1], vertices[face.indices[1] * 3 + 2]);
+    const v2 = new Vector3(vertices[face.indices[2] * 3], vertices[face.indices[2] * 3 + 1], vertices[face.indices[2] * 3 + 2]);
+
+    const edge1 = new Vector3().subVectors(v1, v0);
+    const edge2 = new Vector3().subVectors(v2, v0);
+    const normal = new Vector3().crossVectors(edge1, edge2).normalize();
+
+    for (let i = 0; i < 6; i++) {
+      normals.push(normal.x, normal.y, normal.z);
+    }
   });
 
   geometry.setIndex(indices);
   geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
   geometry.setAttribute('color', new Float32BufferAttribute(colors, 3));
+  geometry.setAttribute('normal', new Float32BufferAttribute(normals, 3));
+  geometry.setDrawRange(0, indices.length);
+  geometry.computeVertexNormals();
+
 
   const mesh = new Mesh(geometry, trackMaterial);
+  mesh.geometry.computeBoundingSphere();
   model.add(mesh);
 
-  const extractVertices = (geometry: BufferGeometry): Vector3Three[] => {
+  const sphereGeometry = new SphereGeometry(mesh.geometry.boundingSphere?.radius, 32, 32);
+  const sphereMaterial = new MeshBasicMaterial({ color: 0x00ff00, side: DoubleSide, wireframe: true });
+  const sphereMesh = new Mesh(sphereGeometry, sphereMaterial);
+  sphereMesh.position.copy(mesh.geometry.boundingSphere?.center ?? new Vector3());
+  model.add(sphereMesh);
+
+  const extractVertices = (geometry: BufferGeometry): Vector3[] => {
     const positionAttribute = geometry.getAttribute('position') as Float32BufferAttribute;
-    const vertices: Vector3Three[] = [];
+    const vertices: Vector3[] = [];
 
     for (let i = 0; i < positionAttribute.count; i++) {
-      const vertex = new Vector3Three();
+      const vertex = new Vector3();
       vertex.fromBufferAttribute(positionAttribute, i);
       vertices.push(vertex);
     }
@@ -932,7 +958,7 @@ const createTrack = (files: any): Object3D => {
   return model;
 };
 
-const loadTrack = async (path: string, loadTEXFile: boolean): Promise<Object3D> => {
+const loadTrack = async (path: string, loadTEXFile: boolean): Promise<Record<string, Object3D>> => {
   const scene = createSceneFromFiles(await loadBinaries({
     textures: `${path}/SCENE.CMP`,
     objects: `${path}/SCENE.PRM`
@@ -955,11 +981,11 @@ const loadTrack = async (path: string, loadTEXFile: boolean): Promise<Object3D> 
   }
   const track = createTrack(await loadBinaries(trackFiles));
 
-  const mesh = new Object3D();
-  mesh.add(scene);
-  mesh.add(sky);
-  mesh.add(track);
-  return mesh;
+  return {
+    scene,
+    sky,
+    track
+  }
 };
 
 const Tracks = {
