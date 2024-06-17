@@ -521,15 +521,11 @@ const createModelFromObject = (
   const initialValue: {
     faceVertexUvs: number[],
     indices: number[],
-    groups: { start: number, count: number, index: number }[],
     colors: number[],
-    startOffset: number
   } = {
     faceVertexUvs: [],
     indices: [],
-    groups: [],
     colors: [],
-    startOffset: 0,
   }
 
   const result = object.polygons.reduce((previousResult, polygon: Polygon) => {
@@ -558,7 +554,7 @@ const createModelFromObject = (
     const polygonIndices = polygon.indices.length === 4
       ? [...standardIndices, polygon.indices[2], polygon.indices[3], polygon.indices[1]]
       : standardIndices;
-    console.log(polygonIndices, polygon.indices)
+
     // Colors
     const constructedColors = [whiteColor, whiteColor, whiteColor, whiteColor];
     if (polygon.color || polygon.colors) {
@@ -571,16 +567,6 @@ const createModelFromObject = (
       ? [...standardColors, constructedColors[2], constructedColors[3], constructedColors[1]]
       : standardColors;
 
-    // Groups
-    const materialIndex = polygon.texture ?? sceneMaterial.length - 1;
-    const count = polygon.indices.length === 4 ? 6 : 3;
-    const polygonGroups = {
-      start: previousResult.startOffset,
-      count,
-      index: materialIndex
-    }
-    const newStartOffset = previousResult.startOffset + count;
-
     return {
       faceVertexUvs: [
         ...previousResult.faceVertexUvs,
@@ -590,27 +576,18 @@ const createModelFromObject = (
         ...previousResult.indices,
         ...polygonIndices
       ],
-      groups: [
-        ...previousResult.groups,
-        polygonGroups,
-      ],
       colors: [
         ...previousResult.colors,
         ...polygonColors.flatMap(color => [color.r, color.g, color.b])],
-      startOffset: newStartOffset
     };
   }, initialValue);
 
-  const { faceVertexUvs, indices, groups, colors } = result;
-  console.log(faceVertexUvs)
+  const { faceVertexUvs, indices, colors } = result;
+
   geometry.setAttribute('uv', new Float32BufferAttribute(faceVertexUvs, 2));
   geometry.setIndex(new BufferAttribute(new Uint16Array(indices), 1));
   geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3));
-
-  groups.forEach(({ start, count, index }) => {
-    geometry.addGroup(start, count, index);
-  });
-  console.log(sceneMaterial)
+  geometry.addGroup(0, indices.length, 0);
   geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3));
 
   // Compute Normals
@@ -619,16 +596,6 @@ const createModelFromObject = (
   const mesh = new Mesh(geometry, sceneMaterial);
   mesh.position.set(object.header.position.x, -object.header.position.y, -object.header.position.z);
 
-  positions.forEach((position, index) => {
-    if (index % 3 !== 0) {
-      return;
-    }
-    const sphere = new SphereGeometry(50);
-    const spheremesh = new Mesh(sphere, new MeshBasicMaterial({ color: 0xff0000, side: DoubleSide }));
-    spheremesh.position.set(positions[index], positions[index + 1], positions[index + 2]);
-    console.log(spheremesh.position)
-    mesh.add(spheremesh);
-  })
   return mesh;
 }
 
@@ -642,8 +609,6 @@ const createMeshFaceMaterial = (images: HTMLCanvasElement[], vertexColors: boole
     const texture = new CanvasTexture(image);
     texture.minFilter = NearestFilter;
     texture.magFilter = NearestFilter;
-    texture.wrapS = texture.wrapT = RepeatWrapping;
-    texture.repeat.set(4, 2)
     texture.needsUpdate = true;
 
     const material = new MeshBasicMaterial({
