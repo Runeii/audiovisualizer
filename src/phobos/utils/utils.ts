@@ -1,8 +1,8 @@
-import { BufferAttribute, BufferGeometry, Color, Float32BufferAttribute, Material, Mesh, MeshBasicMaterial } from "three";
+import { BufferAttribute, BufferGeometry, Color, Float32BufferAttribute, Material, Mesh } from "three";
 
 export const int32ToColor = (v: number): Color => new Color(((v >> 24) & 0xff) / 0x80, ((v >> 16) & 0xff) / 0x80, ((v >> 8) & 0xff) / 0x80);
 
-const loadBinary = async (url) => {
+const loadBinary = async (url: string) => {
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to load: ${url}`);
@@ -12,9 +12,9 @@ const loadBinary = async (url) => {
   return arrayBuffer;
 };
 
-export const loadBinaries = async (urls) => {
+export const loadBinaries = async (paths: Record<string, string>) => {
   const entries = await Promise.all(
-    Object.entries(urls).map(async ([key, url]) => [key, await loadBinary(url)])
+    Object.entries(paths).map(async ([key, path]) => [key, await loadBinary(path)])
   );
   return Object.fromEntries(entries);
 };

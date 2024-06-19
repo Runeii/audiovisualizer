@@ -2,7 +2,6 @@ import { PerspectiveCamera, Vector3 } from "three";
 import { TRACK_FACE_FLAGS, TRACK_SECTION_FLAGS, TrackSection } from "./structs";
 import HermiteCurve3 from "./utils/HermiteCurve3";
 
-
 const updateSplineCamera = (splineCamera: PerspectiveCamera, cameraSpline: HermiteCurve3, ticks: number) => {
   const damping = 0.90;
   const time = ticks * 1000 / 60;

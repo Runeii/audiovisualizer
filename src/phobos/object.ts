@@ -1,4 +1,4 @@
-import { Color, FrontSide, Material, Mesh, Vector2 } from "three";
+import { Color, FrontSide, Mesh, MeshBasicMaterial, Vector2 } from "three";
 import { createMeshFaceMaterial, readImage, unpackImages } from "./materials";
 import { ObjectHeader, POLYGON_TYPE, Polygon, PolygonHeader, Vertex } from "./structs";
 import { constructMeshFromBufferGeometryData, int32ToColor, loadBinaries } from "./utils/utils";
@@ -8,7 +8,7 @@ const whiteColor = new Color(1, 1, 1);
 
 const createModelFromObject = (
   object: WipeoutObject,
-  sceneMaterial: Material[]
+  sceneMaterial: MeshBasicMaterial[]
 ): Mesh => {
   const initialValue: BufferGeometryData = {
     faceVertexUvs: [],
@@ -29,8 +29,8 @@ const createModelFromObject = (
 
     // UVs
     let uvs = [nullVector, nullVector, nullVector, nullVector];
-    if (polygon.texture !== undefined && polygon.uv !== undefined) {
-      const img = sceneMaterial[polygon.texture].map.image;
+    const img = typeof polygon.texture === 'number' ? sceneMaterial[polygon.texture]?.map?.image : null;
+    if (img && polygon.uv !== undefined) {
       uvs = polygon.uv.map(({ u, v }) => new Vector2(u / img.width, 1 - v / img.height));
     }
 
@@ -47,9 +47,16 @@ const createModelFromObject = (
 
     // Colors
     const constructedColors = [whiteColor, whiteColor, whiteColor, whiteColor];
-    if (polygon.color || polygon.colors) {
+    const hasColors = !!(polygon.color || polygon.colors);
+    if (hasColors) {
       for (let j = 0; j < polygon.indices.length; j++) {
-        constructedColors[j] = int32ToColor(polygon.color || polygon.colors[j]);
+        const validColor = polygon.color || polygon.colors?.[j];
+
+        if (!validColor) {
+          continue;
+        }
+
+        constructedColors[j] = int32ToColor(validColor);
       }
     }
     const standardColors = [constructedColors[2], constructedColors[1], constructedColors[0]];

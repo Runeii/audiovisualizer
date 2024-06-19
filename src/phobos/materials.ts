@@ -161,7 +161,7 @@ export const unpackImages = (buffer: ArrayBuffer): ArrayBuffer[] => {
   return files;
 };
 
-export const createMeshFaceMaterial = (images: HTMLCanvasElement[], vertexColors: boolean, side: Side): Material[] => {
+export const createMeshFaceMaterial = (images: HTMLCanvasElement[], vertexColors: boolean, side: Side) => {
   const materials: MeshBasicMaterial[] = [];
 
   const baseMaterial = new MeshBasicMaterial({ wireframe: false });

@@ -1,4 +1,4 @@
-import { DoubleSide, Mesh, Vector3 } from "three";
+import { DoubleSide, Vector3 } from "three";
 import { TRACK_FACE_FLAGS, TrackFace, TrackTextureIndex, TrackVertex } from "./structs";
 import { createMeshFaceMaterial, readImage, unpackImages } from "./materials";
 import { constructMeshFromBufferGeometryData, int32ToColor, loadBinaries } from "./utils/utils";
