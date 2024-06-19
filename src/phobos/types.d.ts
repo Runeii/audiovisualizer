@@ -23,6 +23,7 @@ type BufferGeometryData = {
   colors: number[],
   positions: number[],
   normals?: number[]
+  sprites?: Mesh[]
 }
 
 type FixedLengthArray<T, L extends number> = {

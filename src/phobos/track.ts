@@ -83,13 +83,12 @@ export const createTrackFromFiles = async (paths: Record<string, string>) => {
     }
   });
 
-
   const mesh = constructMeshFromBufferGeometryData({
     positions: vertices,
     faceVertexUvs: uvs,
     colors,
     indices,
-    normals
+    normals,
   }, trackMaterial);
 
   return mesh;

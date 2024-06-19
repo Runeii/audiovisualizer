@@ -1,4 +1,4 @@
-import { Color, FrontSide, Mesh, MeshBasicMaterial, Vector2 } from "three";
+import { Color, FrontSide, Mesh, MeshBasicMaterial, Object3D, PlaneGeometry, Texture, Vector2 } from "three";
 import { createMeshFaceMaterial, readImage, unpackImages } from "./materials";
 import { ObjectHeader, POLYGON_TYPE, Polygon, PolygonHeader, Vertex } from "./structs";
 import { constructMeshFromBufferGeometryData, int32ToColor, loadBinaries } from "./utils/utils";
@@ -15,12 +15,18 @@ const createModelFromObject = (
     indices: [],
     colors: [],
     positions: object.vertices.map((vertex) => [vertex.x, -vertex.y, -vertex.z]).flat(),
+    sprites: []
   }
 
   const result = object.polygons.reduce((previousResult: BufferGeometryData, polygon: Polygon) => {
+    const sprite = object.polygons[0];
+    const map = sprite.texture ? (sceneMaterial[sprite?.texture]?.map ?? null) : null;
+
     if (polygon.header.type === POLYGON_TYPE.SPRITE_BOTTOM_ANCHOR || polygon.header.type === POLYGON_TYPE.SPRITE_TOP_ANCHOR) {
-      console.warn('Found a sprite, not currently supported!!');
-      return previousResult;
+      return {
+        ...previousResult,
+        sprites: [...previousResult.sprites, { sprite, map }]
+      }
     }
 
     if (!polygon.indices) {
@@ -80,6 +86,7 @@ const createModelFromObject = (
       ],
     };
   }, initialValue);
+
 
   const mesh = constructMeshFromBufferGeometryData(result, sceneMaterial);
   mesh.position.set(object.header.position.x, -object.header.position.y, -object.header.position.z);
