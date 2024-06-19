@@ -1,16 +1,17 @@
-import { BufferGeometry, DoubleSide, Float32BufferAttribute, Mesh, Vector3 } from "three";
+import { DoubleSide, Mesh, Vector3 } from "three";
 import { TRACK_FACE_FLAGS, TrackFace, TrackTextureIndex, TrackVertex } from "./structs";
 import { createMeshFaceMaterial, readImage, unpackImages } from "./materials";
-import { int32ToColor } from "./utils/utils";
+import { constructMeshFromBufferGeometryData, int32ToColor, loadBinaries } from "./utils/utils";
 
-export const createTrackFromFiles = (files: any): Mesh => {
+export const createTrackFromFiles = async (paths: Record<string, string>) => {
+  const files = await loadBinaries(paths);
   const rawImages = unpackImages(files.textures);
   const images = rawImages.map(readImage);
 
   const indexEntries = files.textureIndex.byteLength / TrackTextureIndex.byteLength;
   const textureIndex = TrackTextureIndex.readStructs(files.textureIndex, 0, indexEntries);
 
-  const composedImages = textureIndex.map((idx: any) => {
+  const composedImages = textureIndex.map((idx) => {
     const composedImage = document.createElement('canvas');
     composedImage.width = 128;
     composedImage.height = 128;
@@ -27,18 +28,16 @@ export const createTrackFromFiles = (files: any): Mesh => {
 
   const trackMaterial = createMeshFaceMaterial(composedImages, true, DoubleSide);
 
-  const geometry = new BufferGeometry();
 
   const vertexCount = files.vertices.byteLength / TrackVertex.byteLength;
   const rawVertices = TrackVertex.readStructs(files.vertices, 0, vertexCount);
 
-  const vertices = new Float32Array(vertexCount * 3);
-  rawVertices.forEach((vertex: any, i: number) => {
+  const vertices: number[] = [];
+  rawVertices.forEach((vertex, i: number) => {
     vertices[i * 3] = vertex.x;
     vertices[i * 3 + 1] = -vertex.y;
     vertices[i * 3 + 2] = -vertex.z;
   });
-  geometry.setAttribute('position', new Float32BufferAttribute(vertices, 3));
 
   const faceCount = files.faces.byteLength / TrackFace.byteLength;
   const faces = TrackFace.readStructs(files.faces, 0, faceCount);
@@ -48,7 +47,7 @@ export const createTrackFromFiles = (files: any): Mesh => {
   const uvs: number[] = [];
   const normals: number[] = [];
 
-  faces.forEach((face: any) => {
+  faces.forEach((face) => {
     const color = int32ToColor(face.color);
 
     if (face.flags & TRACK_FACE_FLAGS.BOOST) {
@@ -84,15 +83,14 @@ export const createTrackFromFiles = (files: any): Mesh => {
     }
   });
 
-  geometry.setIndex(indices);
-  geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
-  geometry.setAttribute('color', new Float32BufferAttribute(colors, 3));
-  geometry.setAttribute('normal', new Float32BufferAttribute(normals, 3));
-  geometry.setDrawRange(0, indices.length);
-  geometry.computeVertexNormals();
 
-  const mesh = new Mesh(geometry, trackMaterial);
-  mesh.geometry.computeBoundingSphere();
+  const mesh = constructMeshFromBufferGeometryData({
+    positions: vertices,
+    faceVertexUvs: uvs,
+    colors,
+    indices,
+    normals
+  }, trackMaterial);
 
   return mesh;
 };

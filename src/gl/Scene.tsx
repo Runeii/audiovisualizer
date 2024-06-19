@@ -16,15 +16,17 @@ const Scene = () => {
 
   useEffect(() => {
     loadPath(Tracks.Wipeout2097[0].path,  Tracks.Wipeout2097[0].hasTEXFile ?? false).then(({ sky, scene, track }) => {
-     // setMesh2(scene)
-      setMesh3(sky)
-     // setMesh(track)
+      setMesh(track)
+     setMesh2(scene)
+     setMesh3(sky)
     });
   }, [scene]);
 
   return (
     <>
-     {mesh3 && <primitive object={mesh3} />}
+     {mesh && <primitive object={mesh} />}
+     {mesh2 && <primitive object={mesh2} />}
+     {mesh3 && <primitive object={mesh3} scale={48} />}
     </>
   );
 }

@@ -18,11 +18,11 @@ interface StructDefinition {
 
 type StructCallback = (struct: any, offset: number) => void;
 
-interface Struct {
+interface Struct<T> {
   struct_type_id: string;
   byteLength: number;
   readCode: string;
-  readStructs: (arrayBuffer: ArrayBuffer, offset: number, count: number, callback?: StructCallback) => any[];
+  readStructs: (arrayBuffer: ArrayBuffer, offset: number, count: number, callback?: StructCallback) => T[];
 }
 
 interface StructConstructor {
@@ -35,10 +35,10 @@ interface StructConstructor {
   float32: (name?: string, endian?: Endian) => StructType;
   float64: (name?: string, endian?: Endian) => StructType;
   string: (name: string, length: number) => StructType;
-  array: (name: string, type: StructType, length: number) => StructType;
+  array: <U>(name: string, type: StructType | Struct<U>, length: number) => StructType;
   struct: (name: string, struct: Struct) => StructType;
   skip: (length: number) => StructType;
-  create: (...args: (StructType | StructDefinition)[]) => Struct;
+  create: <T>(...args: (StructType | StructDefinition)[]) => Struct<T>;
   BIG_ENDIAN: Endian;
   LITTLE_ENDIAN: Endian;
 }
@@ -159,11 +159,11 @@ const Struct: StructConstructor = {
     structProperty: true
   }),
 
-  create: function (...args: (StructType | StructDefinition)[]): Struct {
+  create<T>(...args: (StructType | StructDefinition)[]): Struct<T> {
     const properties = args[args.length - 1].structProperty ? {} : args[args.length - 1] as StructDefinition;
 
     let byteLength = 0;
-    const struct = Object.create(Object.prototype, properties) as Struct;
+    const struct = Object.create(Object.prototype, properties) as Struct<T>;
 
     // This new struct will be assigned a unique name so that instances can be easily constructed later.
     // It is not recommended that you use these names for anything outside this class, as they are not

@@ -5,7 +5,7 @@ import Struct from './utils/struct';
 
 // .TRV Files ---------------------------------------------
 
-export const TrackVertex = Struct.create(
+export const TrackVertex = Struct.create<Vertex>(
   Struct.int32('x'),
   Struct.int32('y'),
   Struct.int32('z'),
@@ -15,7 +15,7 @@ export const TrackVertex = Struct.create(
 
 // .TRF Files ---------------------------------------------
 
-export const TrackFace = Struct.create(
+export const TrackFace = Struct.create<Face>(
   Struct.array('indices', Struct.uint16(), 4),
   Struct.int16('normalx'),
   Struct.int16('normaly'),
@@ -38,7 +38,7 @@ export const TRACK_FACE_FLAGS = {
 
 // .TTF Files ---------------------------------------------
 
-export const TrackTextureIndex = Struct.create(
+export const TrackTextureIndex = Struct.create<TrackTextureIndex>(
   Struct.array('near', Struct.uint16(), 16), // 4x4 tiles
   Struct.array('med', Struct.uint16(), 4), // 2x2 tiles
   Struct.array('far', Struct.uint16(), 1) // 1 tile
@@ -47,7 +47,7 @@ export const TrackTextureIndex = Struct.create(
 
 // .TRS Files ---------------------------------------------
 
-export const TrackSection = Struct.create(
+export const TrackSection = Struct.create<TrackSection>(
   Struct.int32('nextJunction'),
   Struct.int32('previous'),
   Struct.int32('next'),
@@ -65,7 +65,7 @@ export const TrackSection = Struct.create(
 
 // .TEX Files ---------------------------------------------
 
-export const TrackTexture = Struct.create(
+export const TrackTexture = Struct.create<TrackTexture>(
   Struct.uint8('tile'),
   Struct.uint8('flags')
 );
@@ -81,25 +81,25 @@ export const TRACK_SECTION_FLAGS = {
 
 // .PRM Files ---------------------------------------------
 
-export const WipeoutVector3 = Struct.create(
+export const WipeoutVector3 = Struct.create<WipeoutVector3>(
   Struct.int32('x'),
   Struct.int32('y'),
   Struct.int32('z')
 );
 
-export const Vertex = Struct.create(
+export const Vertex = Struct.create<Vertex>(
   Struct.int16('x'),
   Struct.int16('y'),
   Struct.int16('z'),
   Struct.int16('padding')
 );
 
-export const UV = Struct.create(
+export const UV = Struct.create<UV>(
   Struct.uint8('u'),
   Struct.uint8('v')
 );
 
-export const ObjectHeader = Struct.create(
+export const ObjectHeader = Struct.create<ObjectHeader>(
   Struct.string('name', 15),
   Struct.skip(1),
   Struct.uint16('vertexCount'),
@@ -128,12 +128,13 @@ export const POLYGON_TYPE = {
   SPRITE_BOTTOM_ANCHOR: 0x0B
 };
 
-export const PolygonHeader = Struct.create(
+export const PolygonHeader = Struct.create<PolygonHeader>(
   Struct.uint16('type'),
   Struct.uint16('subtype')
 );
 
-export const Polygon: Record<string, Struct> = {}
+// TODO: We can be more explicit about the structure of each polygon type
+export const Polygon: Record<string, Struct<Polygon>> = {}
 Polygon[POLYGON_TYPE.UNKNOWN_00] = Struct.create(
   Struct.struct('header', PolygonHeader),
   Struct.array('unknown', Struct.uint16(), 7)
@@ -227,7 +228,7 @@ export const IMAGE_TYPE = {
   TRUE_COLOR_16_BPP: 0x02
 };
 
-export const ImageFileHeader = Struct.create(
+export const ImageFileHeader = Struct.create<ImageFileHeader>(
   Struct.uint32('magic', Struct.LITTLE_ENDIAN),
   Struct.uint32('type', Struct.LITTLE_ENDIAN),
   Struct.uint32('headerLength', Struct.LITTLE_ENDIAN),
@@ -237,7 +238,7 @@ export const ImageFileHeader = Struct.create(
   Struct.uint16('palettes', Struct.LITTLE_ENDIAN)
 );
 
-export const ImagePixelHeader = Struct.create(
+export const ImagePixelHeader = Struct.create<ImagePixelHeader>(
   Struct.uint16('skipX', Struct.LITTLE_ENDIAN),
   Struct.uint16('skipY', Struct.LITTLE_ENDIAN),
   Struct.uint16('width', Struct.LITTLE_ENDIAN),
