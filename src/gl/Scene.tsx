@@ -1,7 +1,8 @@
 import { useFrame, useThree } from "@react-three/fiber"
 import { useEffect, useRef, useState } from "react";
-import { Tracks, loadTrack } from "../wipeout";
+import { loadPath } from "../phobos";
 import { BufferGeometry, Mesh, MeshBasicMaterial, Object3D } from "three";
+import { Tracks } from "../phobos/constants";
 
 const Scene = () => {
   const scene = useThree(state => state.scene);
@@ -14,18 +15,16 @@ const Scene = () => {
   const primRef = useRef();
 
   useEffect(() => {
-    loadTrack(Tracks.Wipeout2097[0].path,  Tracks.Wipeout2097[0].hasTEXFile ?? false).then(({ sky, scene, track }) => {
-      setMesh(sky)
+    loadPath(Tracks.Wipeout2097[0].path,  Tracks.Wipeout2097[0].hasTEXFile ?? false).then(({ sky, scene, track }) => {
+     // setMesh2(scene)
+      setMesh3(sky)
+     // setMesh(track)
     });
   }, [scene]);
 
-  if (!mesh) {
-    return null;
-  }
-
   return (
     <>
-      <primitive object={mesh} />
+     {mesh3 && <primitive object={mesh3} />}
     </>
   );
 }
