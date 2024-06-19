@@ -1,94 +1,34 @@
 import { Color, FrontSide, Mesh, MeshBasicMaterial, Object3D, PlaneGeometry, Texture, Vector2 } from "three";
 import { createMeshFaceMaterial, readImage, unpackImages } from "./materials";
 import { ObjectHeader, POLYGON_TYPE, Polygon, PolygonHeader, Vertex } from "./structs";
-import { constructMeshFromBufferGeometryData, int32ToColor, loadBinaries } from "./utils/utils";
+import { constructMeshFromBufferGeometryData, createBufferGeometryDataFromPolygons, int32ToColor, loadBinaries } from "./utils/utils";
 
-const nullVector = new Vector2(0, 0);
-const whiteColor = new Color(1, 1, 1);
 
 const createModelFromObject = (
   object: WipeoutObject,
   sceneMaterial: MeshBasicMaterial[]
 ): Mesh => {
-  const initialValue: BufferGeometryData = {
-    faceVertexUvs: [],
-    indices: [],
-    colors: [],
-    positions: object.vertices.map((vertex) => [vertex.x, -vertex.y, -vertex.z]).flat(),
-    sprites: []
-  }
-
-  const result = object.polygons.reduce((previousResult: BufferGeometryData, polygon: Polygon) => {
+  const sprites = object.polygons.map((polygon: Polygon) => {
     const sprite = object.polygons[0];
     const map = sprite.texture ? (sceneMaterial[sprite?.texture]?.map ?? null) : null;
 
-    if (polygon.header.type === POLYGON_TYPE.SPRITE_BOTTOM_ANCHOR || polygon.header.type === POLYGON_TYPE.SPRITE_TOP_ANCHOR) {
-      return {
-        ...previousResult,
-        sprites: [...previousResult.sprites, { sprite, map }]
-      }
+    if (polygon.header.type !== POLYGON_TYPE.SPRITE_BOTTOM_ANCHOR && polygon.header.type !== POLYGON_TYPE.SPRITE_TOP_ANCHOR) {
+      return;
     }
-
-    if (!polygon.indices) {
-      return previousResult;
-    }
-
-    // UVs
-    let uvs = [nullVector, nullVector, nullVector, nullVector];
-    const img = typeof polygon.texture === 'number' ? sceneMaterial[polygon.texture]?.map?.image : null;
-    if (img && polygon.uv !== undefined) {
-      uvs = polygon.uv.map(({ u, v }) => new Vector2(u / img.width, 1 - v / img.height));
-    }
-
-    const standardUvs = [uvs[2], uvs[1], uvs[0]];
-    const polygonUvs = polygon.indices.length === 4
-      ? [...standardUvs, uvs[2], uvs[3], uvs[1]]
-      : standardUvs;
-
-    // Indices
-    const standardIndices = [polygon.indices[2], polygon.indices[1], polygon.indices[0]];
-    const polygonIndices = polygon.indices.length === 4
-      ? [...standardIndices, polygon.indices[2], polygon.indices[3], polygon.indices[1]]
-      : standardIndices;
-
-    // Colors
-    const constructedColors = [whiteColor, whiteColor, whiteColor, whiteColor];
-    const hasColors = !!(polygon.color || polygon.colors);
-    if (hasColors) {
-      for (let j = 0; j < polygon.indices.length; j++) {
-        const validColor = polygon.color || polygon.colors?.[j];
-
-        if (!validColor) {
-          continue;
-        }
-
-        constructedColors[j] = int32ToColor(validColor);
-      }
-    }
-    const standardColors = [constructedColors[2], constructedColors[1], constructedColors[0]];
-    const polygonColors = polygon.indices.length === 4
-      ? [...standardColors, constructedColors[2], constructedColors[3], constructedColors[1]]
-      : standardColors;
 
     return {
-      ...previousResult,
-      faceVertexUvs: [
-        ...previousResult.faceVertexUvs,
-        ...polygonUvs.flatMap(uv => [uv.x, uv.y])
-      ],
-      indices: [
-        ...previousResult.indices,
-        ...polygonIndices
-      ],
-      colors: [
-        ...previousResult.colors,
-        ...polygonColors.flatMap(color => [color.r, color.g, color.b])
-      ],
-    };
-  }, initialValue);
+      sprite,
+      map
+    }
+  }).filter(hasValue => hasValue);
 
+  const data = createBufferGeometryDataFromPolygons(object.polygons, object.vertices, sceneMaterial);
 
-  const mesh = constructMeshFromBufferGeometryData(result, sceneMaterial);
+  const mesh = constructMeshFromBufferGeometryData({
+    sprites,
+    ...data,
+  }, sceneMaterial);
+
   mesh.position.set(object.header.position.x, -object.header.position.y, -object.header.position.z);
 
   return mesh;

@@ -1,4 +1,4 @@
-import { BufferAttribute, BufferGeometry, Color, Float32BufferAttribute, Material, Mesh, MeshBasicMaterial, PlaneGeometry, Texture, Vector3 } from "three";
+import { BufferAttribute, BufferGeometry, Color, Float32BufferAttribute, Material, Mesh, MeshBasicMaterial, PlaneGeometry, Texture, Vector2, Vector3 } from "three";
 import { POLYGON_TYPE } from "../structs";
 
 export const int32ToColor = (v: number): Color => new Color(((v >> 24) & 0xff) / 0x80, ((v >> 16) & 0xff) / 0x80, ((v >> 8) & 0xff) / 0x80);
@@ -85,4 +85,70 @@ export const constructMeshFromBufferGeometryData = (data: BufferGeometryData, ma
   mesh.geometry.computeBoundingSphere();
 
   return mesh;
+}
+
+const nullVector = new Vector2(0, 0);
+const whiteColor = new Color(1, 1, 1);
+
+export const createBufferGeometryDataFromPolygons = (polygons: Polygon[] | Face[], vertices: Vertex[], sceneMaterial?: MeshBasicMaterial[]) => {
+  const positions = vertices.map((vertex) => [vertex.x, -vertex.y, -vertex.z]).flat();
+
+  const filteredPolygons = polygons.filter(polygon => polygon.indices !== undefined) as Array<Required<Polygon>>;
+
+  const faceVertexUvs = filteredPolygons.map((polygon) => {
+    // UVs
+    let uvs = [nullVector, nullVector, nullVector, nullVector];
+    const img = sceneMaterial && typeof polygon.texture === 'number' ? sceneMaterial[polygon.texture]?.map?.image : null;
+
+    if (img && polygon.uv !== undefined) {
+      uvs = polygon.uv.map(({ u, v }) => new Vector2(u / img.width, 1 - v / img.height));
+    }
+
+    const standardUvs = [uvs[2], uvs[1], uvs[0]];
+    const polygonUvs = polygon.indices.length === 4
+      ? [...standardUvs, uvs[2], uvs[3], uvs[1]]
+      : standardUvs;
+
+    return polygonUvs;
+  }).flat().flatMap(uv => [uv.x, uv.y]);
+
+  const indices = filteredPolygons.map((polygon) => {
+    // Indices
+    const standardIndices = [polygon.indices[2], polygon.indices[1], polygon.indices[0]];
+    const polygonIndices = polygon.indices.length === 4
+      ? [...standardIndices, polygon.indices[2], polygon.indices[3], polygon.indices[1]]
+      : standardIndices;
+
+    return polygonIndices;
+  }).flat();
+
+  const colors = filteredPolygons.map((polygon) => {
+    // Colors
+    const constructedColors = [whiteColor, whiteColor, whiteColor, whiteColor];
+    const hasColors = !!(polygon.color || polygon.colors);
+    if (hasColors) {
+      for (let j = 0; j < polygon.indices.length; j++) {
+        const validColor = polygon.color || polygon.colors?.[j];
+
+        if (!validColor) {
+          continue;
+        }
+
+        constructedColors[j] = int32ToColor(validColor);
+      }
+    }
+    const standardColors = [constructedColors[2], constructedColors[1], constructedColors[0]];
+    const polygonColors = polygon.indices.length === 4
+      ? [...standardColors, constructedColors[2], constructedColors[3], constructedColors[1]]
+      : standardColors;
+
+    return polygonColors;
+  }).flat().flatMap(color => [color.r, color.g, color.b]);
+
+  return {
+    colors,
+    faceVertexUvs,
+    indices,
+    positions,
+  }
 }
