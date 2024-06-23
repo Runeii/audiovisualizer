@@ -53,7 +53,7 @@ const createSprite = (polygon: Polygon, map: Texture, vertex: Vertex) => {
 
 export const constructMeshFromBufferGeometryData = (data: BufferGeometryData, material: Material | Material[]) => {
   const { faceVertexUvs, colors, indices, positions, normals } = data;
-
+  console.log(data)
   const geometry = new BufferGeometry();
 
   // Set positions
@@ -90,7 +90,18 @@ export const constructMeshFromBufferGeometryData = (data: BufferGeometryData, ma
 const nullVector = new Vector2(0, 0);
 const whiteColor = new Color(1, 1, 1);
 
-export const createBufferGeometryDataFromPolygons = (polygons: Polygon[] | Face[], vertices: Vertex[], sceneMaterial?: MeshBasicMaterial[]) => {
+export const createBufferGeometryDataFromPolygons = ({ isQuad, dataOrder, polygons, vertices, sceneMaterial }: {
+  isQuad: (polygon: Polygon) => boolean,
+  dataOrder: [[number, number, number], [number, number, number]]
+  polygons: Polygon[] | Face[],
+  vertices: Vertex[],
+  sceneMaterial?: MeshBasicMaterial[]
+}) => {
+  const triangleIndexOrder = dataOrder[0]
+  const quadIndexOrder = dataOrder[1];
+
+  const dataExtractFunc = <T>(array: Array<T>, order: typeof triangleIndexOrder | typeof quadIndexOrder) => [array[order[0]], array[order[1]], array[order[2]]];
+
   const positions = vertices.map((vertex) => [vertex.x, -vertex.y, -vertex.z]).flat();
 
   const filteredPolygons = polygons.filter(polygon => polygon.indices !== undefined) as Array<Required<Polygon>>;
@@ -104,9 +115,9 @@ export const createBufferGeometryDataFromPolygons = (polygons: Polygon[] | Face[
       uvs = polygon.uv.map(({ u, v }) => new Vector2(u / img.width, 1 - v / img.height));
     }
 
-    const standardUvs = [uvs[2], uvs[1], uvs[0]];
-    const polygonUvs = polygon.indices.length === 4
-      ? [...standardUvs, uvs[2], uvs[3], uvs[1]]
+    const standardUvs = dataExtractFunc(uvs, triangleIndexOrder);
+    const polygonUvs = isQuad(polygon)
+      ? [...standardUvs, ...dataExtractFunc(uvs, quadIndexOrder)]
       : standardUvs;
 
     return polygonUvs;
@@ -114,9 +125,9 @@ export const createBufferGeometryDataFromPolygons = (polygons: Polygon[] | Face[
 
   const indices = filteredPolygons.map((polygon) => {
     // Indices
-    const standardIndices = [polygon.indices[2], polygon.indices[1], polygon.indices[0]];
-    const polygonIndices = polygon.indices.length === 4
-      ? [...standardIndices, polygon.indices[2], polygon.indices[3], polygon.indices[1]]
+    const standardIndices = dataExtractFunc(polygon.indices, triangleIndexOrder);
+    const polygonIndices = isQuad(polygon)
+      ? [...standardIndices, ...dataExtractFunc(polygon.indices, quadIndexOrder)]
       : standardIndices;
 
     return polygonIndices;
@@ -137,9 +148,9 @@ export const createBufferGeometryDataFromPolygons = (polygons: Polygon[] | Face[
         constructedColors[j] = int32ToColor(validColor);
       }
     }
-    const standardColors = [constructedColors[2], constructedColors[1], constructedColors[0]];
-    const polygonColors = polygon.indices.length === 4
-      ? [...standardColors, constructedColors[2], constructedColors[3], constructedColors[1]]
+    const standardColors = dataExtractFunc(constructedColors, triangleIndexOrder);
+    const polygonColors = isQuad(polygon)
+      ? [...standardColors, ...dataExtractFunc(constructedColors, quadIndexOrder)]
       : standardColors;
 
     return polygonColors;

@@ -33,13 +33,14 @@ type FixedLengthArray<T, L extends number> = {
 
 // Wipeout data struct types
 type Face = {
+  color: number;
+  colors: number[];
+  flags: number;
   indices: FixedLengthArray<number, 4>;
   normalx: number;
   normaly: number;
   normalz: number;
   tile: number;
-  flags: number;
-  color: number;
 };
 
 type TextureIndex = {

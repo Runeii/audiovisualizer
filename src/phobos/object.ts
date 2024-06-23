@@ -1,7 +1,7 @@
-import { Color, FrontSide, Mesh, MeshBasicMaterial, Object3D, PlaneGeometry, Texture, Vector2 } from "three";
+import { FrontSide, Mesh, MeshBasicMaterial } from "three";
 import { createMeshFaceMaterial, readImage, unpackImages } from "./materials";
 import { ObjectHeader, POLYGON_TYPE, Polygon, PolygonHeader, Vertex } from "./structs";
-import { constructMeshFromBufferGeometryData, createBufferGeometryDataFromPolygons, int32ToColor, loadBinaries } from "./utils/utils";
+import { constructMeshFromBufferGeometryData, createBufferGeometryDataFromPolygons, loadBinaries } from "./utils/utils";
 
 
 const createModelFromObject = (
@@ -22,7 +22,13 @@ const createModelFromObject = (
     }
   }).filter(hasValue => hasValue);
 
-  const data = createBufferGeometryDataFromPolygons(object.polygons, object.vertices, sceneMaterial);
+  const data = createBufferGeometryDataFromPolygons({
+    isQuad: polygon => polygon.indices?.length === 4,
+    dataOrder: [[2, 1, 0], [2, 3, 1]],
+    polygons: object.polygons,
+    vertices: object.vertices,
+    sceneMaterial
+  });
 
   const mesh = constructMeshFromBufferGeometryData({
     sprites,
