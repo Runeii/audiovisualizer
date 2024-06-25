@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Text } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei';
 import useStore from '../store';
 import Scene from './Scene';
 
@@ -22,17 +22,6 @@ const World = () => {
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial color="hotpink" />
       </mesh>
-      <Text
-        color="white"
-        anchorX="center"
-        anchorY="middle"
-        fontSize={3}
-        position={[0, 0, 0]}
-        rotation={[0, 0, 0]}
-        textAlign="center"
-      >
-        {tempo}
-      </Text>
     </Canvas>
   );
 }

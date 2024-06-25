@@ -51,9 +51,10 @@ const createSprite = (polygon: Polygon, map: Texture, vertex: Vertex) => {
   return sprite;
 }
 
-export const constructMeshFromBufferGeometryData = (data: BufferGeometryData, material: Material | Material[]) => {
-  const { faceVertexUvs, colors, indices, positions, normals } = data;
-  console.log(data)
+
+export const constructMeshFromBufferGeometryData = (data: BufferGeometryData, materials: Material | Material[]) => {
+  const { faceVertexUvs, colors, groups, indices, positions, normals } = data;
+
   const geometry = new BufferGeometry();
 
   // Set positions
@@ -62,8 +63,11 @@ export const constructMeshFromBufferGeometryData = (data: BufferGeometryData, ma
   geometry.setAttribute('uv', new Float32BufferAttribute(faceVertexUvs, 2));
   geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3));
   geometry.setIndex(new BufferAttribute(new Uint16Array(indices), 1));
-  geometry.setDrawRange(0, indices.length);
-  geometry.addGroup(0, indices.length, 0);
+  //geometry.setDrawRange(0, indices.length);
+
+  groups.forEach((group) => {
+    geometry.addGroup(group.start, group.count, group.materialIndex);
+  });
 
   if (normals) {
     geometry.setAttribute('normal', new Float32BufferAttribute(normals, 3));
@@ -71,7 +75,7 @@ export const constructMeshFromBufferGeometryData = (data: BufferGeometryData, ma
 
   geometry.computeVertexNormals();
 
-  const mesh = new Mesh(geometry, material);
+  const mesh = new Mesh(geometry, materials);
 
   data.sprites?.forEach(({ sprite, map }) => {
     const positions = geometry.getAttribute('position').array;
@@ -87,11 +91,30 @@ export const constructMeshFromBufferGeometryData = (data: BufferGeometryData, ma
   return mesh;
 }
 
+const condenseGroups = (groups: Group[]) => {
+  const result = [];
+  let currentGroup = { ...groups[0] };
+
+  for (let i = 1; i < groups.length; i++) {
+    const group = groups[i];
+    if (group.materialIndex === currentGroup.materialIndex) {
+      currentGroup.count += group.count;
+      continue;
+    }
+
+    result.push(currentGroup);
+    currentGroup = { ...group };
+  }
+
+  result.push(currentGroup);
+  return result;
+}
+
 const nullVector = new Vector2(0, 0);
 const whiteColor = new Color(1, 1, 1);
 
 export const createBufferGeometryDataFromPolygons = ({ isQuad, dataOrder, polygons, vertices, sceneMaterial }: {
-  isQuad: (polygon: Polygon) => boolean,
+  isQuad: (polygon: Polygon | Face) => boolean,
   dataOrder: [[number, number, number], [number, number, number]]
   polygons: Polygon[] | Face[],
   vertices: Vertex[],
@@ -100,11 +123,11 @@ export const createBufferGeometryDataFromPolygons = ({ isQuad, dataOrder, polygo
   const triangleIndexOrder = dataOrder[0]
   const quadIndexOrder = dataOrder[1];
 
-  const dataExtractFunc = <T>(array: Array<T>, order: typeof triangleIndexOrder | typeof quadIndexOrder) => [array[order[0]], array[order[1]], array[order[2]]];
+  const dataExtractFunc = <T>(array: Array<T> | FixedLengthArray<T, 4>, order: typeof triangleIndexOrder | typeof quadIndexOrder) => [array[order[0]], array[order[1]], array[order[2]]];
 
   const positions = vertices.map((vertex) => [vertex.x, -vertex.y, -vertex.z]).flat();
 
-  const filteredPolygons = polygons.filter(polygon => polygon.indices !== undefined) as Array<Required<Polygon>>;
+  const filteredPolygons = polygons.filter(polygon => polygon.indices !== undefined) as (Array<Required<Polygon>> | Array<Required<Face>>);
 
   const faceVertexUvs = filteredPolygons.map((polygon) => {
     // UVs
@@ -156,9 +179,35 @@ export const createBufferGeometryDataFromPolygons = ({ isQuad, dataOrder, polygo
     return polygonColors;
   }).flat().flatMap(color => [color.r, color.g, color.b]);
 
+  const simpleGroups = filteredPolygons.map((polygon, index) => {
+    return {
+      start: index * 6,
+      count: 6,
+      materialIndex: polygon.tile ?? 10000,
+    }
+  })
+  const { groups } = filteredPolygons.reduce((previousResult, polygon) => {
+    const size = isQuad(polygon) ? 6 : 3
+    return {
+      groups: [
+        ...previousResult.groups,
+        {
+          start: previousResult.progress,
+          count: size,
+          materialIndex: polygon.texture ?? polygon.tile ?? 0,
+        }
+      ],
+      progress: previousResult.progress + size,
+    }
+  }, {
+    groups: [{ start: 0, count: 0, materialIndex: 0 }],
+    progress: 0,
+  });
+
   return {
     colors,
     faceVertexUvs,
+    groups,
     indices,
     positions,
   }

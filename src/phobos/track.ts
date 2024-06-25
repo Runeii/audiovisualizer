@@ -1,7 +1,8 @@
-import { DoubleSide } from "three";
-import { TRACK_FACE_FLAGS, TrackFace, TrackTextureIndex, TrackVertex } from "./structs";
+import { Color, DoubleSide } from "three";
+import { TRACK_FACE_FLAGS, TrackFace, TrackTexture, TrackTextureIndex, TrackVertex } from "./structs";
 import { createMeshFaceMaterial, readImage, unpackImages } from "./materials";
 import { constructMeshFromBufferGeometryData, createBufferGeometryDataFromPolygons, int32ToColor, loadBinaries } from "./utils/utils";
+import { createCameraSpline } from "./camera";
 
 export const createTrackFromFiles = async (paths: Record<string, string>) => {
   const files = await loadBinaries(paths);
@@ -23,10 +24,14 @@ export const createTrackFromFiles = async (paths: Record<string, string>) => {
         ctx.drawImage(image, x * 32, y * 32);
       }
     }
+
     return composedImage;
   });
 
-  const trackMaterial = createMeshFaceMaterial(composedImages, true, DoubleSide);
+
+  const trackMaterials = createMeshFaceMaterial(composedImages, true, DoubleSide);
+  // Weapon tile
+  trackMaterials[3].vertexColors = false;
 
   const vertexCount = files.vertices.byteLength / TrackVertex.byteLength;
   const vertices = TrackVertex.readStructs(files.vertices, 0, vertexCount);
@@ -34,50 +39,55 @@ export const createTrackFromFiles = async (paths: Record<string, string>) => {
   const faceCount = files.faces.byteLength / TrackFace.byteLength;
   const faces = TrackFace.readStructs(files.faces, 0, faceCount);
 
+  const trackTextureCount = files.trackTexture.byteLength / TrackTexture.byteLength;
+  const trackTextures = TrackTexture.readStructs(files.trackTexture, 0, trackTextureCount);
+
+  const polygonsWithTexturesApplied = faces.map((polygon, index) => {
+    const texture = trackTextures[index];
+
+    return {
+      ...polygon,
+      flags: texture.flags,
+      tile: texture.tile,
+    }
+  });
+
   const result = createBufferGeometryDataFromPolygons({
-    polygons: faces,
-    isQuad: () => true,
     dataOrder: [[0, 1, 2], [2, 3, 0]],
+    isQuad: () => true,
+    polygons: polygonsWithTexturesApplied,
     vertices
   });
 
-  const uvs = faces.map(face => {
+  const uvs = faces.map((face) => {
     const flipx = (face.flags & TRACK_FACE_FLAGS.FLIP) ? 1 : 0;
+
     return [
       1 - flipx, 1,
       0 + flipx, 1,
       0 + flipx, 0,
       0 + flipx, 0,
       1 - flipx, 0,
-      1 - flipx, 1
+      1 - flipx, 1,
     ];
   }).flat()
 
-  const whiteColor = int32ToColor(0xffffff);
-  const colors = faces.map((polygon) => {
-    // Colors
-    const constructedColors = [whiteColor, whiteColor, whiteColor, whiteColor];
-    const hasColors = !!(polygon.color || polygon.colors);
-    if (hasColors) {
-      for (let j = 0; j < polygon.indices.length; j++) {
-        const validColor = polygon.color || polygon.colors?.[j];
 
-        if (!validColor) {
-          continue;
-        }
-
-        constructedColors[j] = int32ToColor(validColor);
-      }
+  const colors = polygonsWithTexturesApplied.map(polygon => {
+    if (polygon.flags & TRACK_FACE_FLAGS.BOOST) {
+      //render boost tile as bright blue
+      return [new Color(0.25, 0.25, 2), new Color(0.25, 0.25, 2)];
     }
-    const standardColors = [constructedColors[2], constructedColors[1], constructedColors[0]];
-    const polygonColors = polygon.indices.length === 4
-      ? [...standardColors, constructedColors[2], constructedColors[3], constructedColors[1]]
-      : standardColors;
+    return [int32ToColor(polygon.color), int32ToColor(polygon.color)];
+  }).flat().flat().flatMap(color => [color.r, color.g, color.b]);
 
-    return polygonColors;
-  }).flat().flatMap(color => [color.r, color.g, color.b]);
+  const track = constructMeshFromBufferGeometryData({
+    ...result,
+    colors,
+    faceVertexUvs: uvs
+  }, trackMaterials);
 
-  const mesh = constructMeshFromBufferGeometryData({ ...result, faceVertexUvs: uvs, colors }, trackMaterial);
+  const spline = createCameraSpline(files.sections, result.faceVertexUvs, result.positions);
 
-  return mesh;
+  return { spline, track };
 };

@@ -17,12 +17,19 @@ type PolygonHeader = {
   subtype: number;
 };
 
+type Group = {
+  count: number,
+  materialIndex: number,
+  start: number,
+}
+
 type BufferGeometryData = {
-  faceVertexUvs: number[],
-  indices: number[],
   colors: number[],
-  positions: number[],
+  faceVertexUvs: number[],
+  groups: Group[],
+  indices: number[],
   normals?: number[]
+  positions: number[],
   sprites?: Mesh[]
 }
 

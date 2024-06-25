@@ -1,4 +1,4 @@
-import { CanvasTexture, Material, MeshBasicMaterial, NearestFilter, Side } from "three";
+import { CanvasTexture, DoubleSide, FrontSide, Material, MeshBasicMaterial, NearestFilter, Side } from "three";
 import { IMAGE_TYPE, ImageFileHeader, ImagePixelHeader } from "./structs";
 
 export const readImage = (buffer: ArrayBuffer): HTMLCanvasElement => {
@@ -176,7 +176,7 @@ export const createMeshFaceMaterial = (images: HTMLCanvasElement[], vertexColors
     const material = new MeshBasicMaterial({
       map: texture,
       vertexColors,
-      side,
+      side: DoubleSide,
       alphaTest: 0.5,
     });
 
