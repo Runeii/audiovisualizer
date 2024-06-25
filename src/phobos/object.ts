@@ -1,7 +1,7 @@
 import { FrontSide, Mesh, MeshBasicMaterial } from "three";
 import { createMeshFaceMaterial, readImage, unpackImages } from "./materials";
 import { ObjectHeader, POLYGON_TYPE, Polygon, PolygonHeader, Vertex } from "./structs";
-import { constructMeshFromBufferGeometryData, createBufferGeometryDataFromPolygons, loadBinaries } from "./utils/utils";
+import { loadBinaries } from "./utils/utils";
 import { __deprecated_createModelFromObject } from "./deprecated/__toupgrade";
 
 

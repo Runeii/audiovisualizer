@@ -2,7 +2,7 @@ import { TRACK_FACE_FLAGS, TRACK_SECTION_FLAGS, TrackSection } from "./structs";
 import HermiteCurve3 from "./utils/HermiteCurve3";
 import { Vector3 } from "three";
 
-const getSectionPosition = (section: TrackSection, faces: Face[], vertices: Vector3[]): Vector3 => {
+export const getSectionPosition = (section: TrackSection, faces: Face[], vertices: Vertex[]): Vector3 => {
   let verticescount = 0;
   const position = new Vector3();
 
@@ -21,7 +21,7 @@ const getSectionPosition = (section: TrackSection, faces: Face[], vertices: Vect
   return position;
 };
 
-export const createCameraSpline = (buffer, faces, vertices) => {
+export const createCameraSpline = (buffer: ArrayBuffer, faces: Face[], vertices: Vertex[]) => {
   const sectionCount = buffer.byteLength / TrackSection.byteLength;
   const sections = TrackSection.readStructs(buffer, 0, sectionCount);
 

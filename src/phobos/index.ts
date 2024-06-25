@@ -14,7 +14,7 @@ export const loadPath = async (path: string) => {
   });
 
 
-  const { spline, track: track2 } = await createTrackFromFiles({
+  const { spline, track } = await createTrackFromFiles({
     textures: `${path}/LIBRARY.CMP`,
     textureIndex: `${path}/LIBRARY.TTF`,
     vertices: `${path}/TRACK.TRV`,
@@ -33,7 +33,7 @@ export const loadPath = async (path: string) => {
     ships,
     sky,
     spline,
-    track: track2
+    track
   }
 };
 

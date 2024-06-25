@@ -1,10 +1,12 @@
 import { Color, Mesh, MeshBasicMaterial, Object3D, PlaneGeometry, Texture, Vector2, Vector3 } from "three";
-import { POLYGON_TYPE, TRACK_FACE_FLAGS } from "../structs";
+import { POLYGON_TYPE, TRACK_FACE_FLAGS, TRACK_SECTION_FLAGS, TrackSection } from "../structs";
 import { Face3, Geometry } from "./Geometry";
 import { int32ToColor } from "../utils/utils";
+import HermiteCurve3 from "../utils/HermiteCurve3";
+import { getSectionPosition } from "../camera";
 
 export const __deprecated_createModelFromObject = (object: WipeoutObject, sceneMaterial: MeshBasicMaterial[], spriteCollection: { sprite: Polygon, map: Texture }[]) => {
-  const model = new Object3D();
+  const model = new Mesh();
   const geometry = new Geometry();
 
   // Load vertices

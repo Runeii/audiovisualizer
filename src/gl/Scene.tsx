@@ -42,7 +42,7 @@ const Scene = () => {
      {mesh4 && <primitive object={mesh4.children[3]} scale={1} />}
 
      {spline  && (
-      <mesh >
+      <mesh position={[0,0,0]} rotation={[Math.PI,0,0]}>
         <tubeGeometry args={[spline, spline.points.length, 50, 5, true]} />
         <meshBasicMaterial color={0xff00ff} />
       </mesh>
