@@ -1,8 +1,9 @@
-import { Color, DoubleSide } from "three";
-import { TRACK_FACE_FLAGS, TrackFace, TrackTexture, TrackTextureIndex, TrackVertex } from "./structs";
+import { DoubleSide } from "three";
+import { TrackFace, TrackTexture, TrackTextureIndex, TrackVertex } from "./structs";
 import { createMeshFaceMaterial, readImage, unpackImages } from "./materials";
-import { constructMeshFromBufferGeometryData, createBufferGeometryDataFromPolygons, int32ToColor, loadBinaries } from "./utils/utils";
+import { loadBinaries } from "./utils/utils";
 import { createCameraSpline } from "./camera";
+import { __deprecated_createTrack } from "./deprecated/__toupgrade";
 
 export const createTrackFromFiles = async (paths: Record<string, string>) => {
   const files = await loadBinaries(paths);
@@ -52,6 +53,7 @@ export const createTrackFromFiles = async (paths: Record<string, string>) => {
     }
   });
 
+  /*
   const result = createBufferGeometryDataFromPolygons({
     dataOrder: [[0, 1, 2], [2, 3, 0]],
     isQuad: () => true,
@@ -86,8 +88,15 @@ export const createTrackFromFiles = async (paths: Record<string, string>) => {
     colors,
     faceVertexUvs: uvs
   }, trackMaterials);
+*/
 
-  const spline = createCameraSpline(files.sections, result.faceVertexUvs, result.positions);
+  const track = __deprecated_createTrack({
+    vertices,
+    polygons: polygonsWithTexturesApplied,
+    trackMaterials
+  })
+
+  const spline = createCameraSpline(files.sections, polygonsWithTexturesApplied, vertices);
 
   return { spline, track };
 };

@@ -2,6 +2,7 @@ import { FrontSide, Mesh, MeshBasicMaterial } from "three";
 import { createMeshFaceMaterial, readImage, unpackImages } from "./materials";
 import { ObjectHeader, POLYGON_TYPE, Polygon, PolygonHeader, Vertex } from "./structs";
 import { constructMeshFromBufferGeometryData, createBufferGeometryDataFromPolygons, loadBinaries } from "./utils/utils";
+import { __deprecated_createModelFromObject } from "./deprecated/__toupgrade";
 
 
 const createModelFromObject = (
@@ -22,6 +23,7 @@ const createModelFromObject = (
     }
   }).filter(hasValue => hasValue);
 
+  /*
   const data = createBufferGeometryDataFromPolygons({
     isQuad: polygon => polygon.indices?.length === 4,
     dataOrder: [[2, 1, 0], [2, 3, 1]],
@@ -35,6 +37,9 @@ const createModelFromObject = (
     ...data,
   }, sceneMaterial);
 
+  */
+
+  const mesh = __deprecated_createModelFromObject(object, sceneMaterial, sprites);
   mesh.position.set(object.header.position.x, -object.header.position.y, -object.header.position.z);
 
   return mesh;
@@ -89,6 +94,7 @@ export const createObjectFromFiles = async (paths: Record<string, string>) => {
   const mesh = new Mesh();
   objects.forEach((object) => {
     const model = createModelFromObject(object, sceneMaterial);
+
     mesh.add(model);
   });
 

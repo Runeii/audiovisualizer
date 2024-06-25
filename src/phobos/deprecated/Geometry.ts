@@ -40,7 +40,7 @@ class Geometry extends EventDispatcher {
   vertices: Vector3[];
   colors: Color[];
   faces: Face3[];
-  faceVertexUvs: [Vector2[]];
+  faceVertexUvs: Vector2[][][];
   morphTargets: [];
   morphNormals: [];
   skinWeights: [];

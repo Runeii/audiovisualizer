@@ -5,10 +5,10 @@ import { Vector3 } from "three";
 const getSectionPosition = (section: TrackSection, faces: Face[], vertices: Vector3[]): Vector3 => {
   let verticescount = 0;
   const position = new Vector3();
-  console.log('bong2')
+
   for (let i = section.firstFace; i < section.firstFace + section.numFaces; i++) {
     const face = faces[i];
-    console.log('bong')
+
     if (face.flags & TRACK_FACE_FLAGS.TRACK) {
       face.indices.forEach((index: number) => {
         const vertex = vertices[index];

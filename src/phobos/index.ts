@@ -1,4 +1,3 @@
-import createTrack from './deprecated/__toupgrade';
 import { createObjectFromFiles } from './object';
 import { createTrackFromFiles } from './track';
 
@@ -14,7 +13,8 @@ export const loadPath = async (path: string) => {
     objects: `${path}/SKY.PRM`
   });
 
-  const { spline, track } = await createTrack({
+
+  const { spline, track: track2 } = await createTrackFromFiles({
     textures: `${path}/LIBRARY.CMP`,
     textureIndex: `${path}/LIBRARY.TTF`,
     vertices: `${path}/TRACK.TRV`,
@@ -23,7 +23,6 @@ export const loadPath = async (path: string) => {
     trackTexture: `${path}/TRACK.TEX`
   });
 
-  console.log(track.geometry, spline)
   const ships = await createObjectFromFiles({
     textures: 'WIPEOUT2/COMMON/TERRY.CMP',
     objects: 'WIPEOUT2/COMMON/TERRY.PRM'
@@ -34,7 +33,7 @@ export const loadPath = async (path: string) => {
     ships,
     sky,
     spline,
-    track
+    track: track2
   }
 };
 
