@@ -73,7 +73,13 @@ export const createCameraSpline = (buffer: ArrayBuffer, faces: Face[], vertices:
 
   const cameraSpline = new HermiteCurve3({
     arcLengthDivisions: 20000,
-    points: cameraPoints,
+    points: cameraPoints.map(p => {
+      // FIX: Flip Z and Y axis
+      const point = p.clone()
+      point.z = -point.z;
+      point.y = -point.y;
+      return point;
+    }),
     tension: 0.5,
     bias: 0.0,
   });
