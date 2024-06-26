@@ -1,17 +1,13 @@
 import create from 'zustand'
 
 interface StoreState {
+  speed: number
   tempo: number
-  key?: string
-  loudness: number
-  energy: number
 }
 
-const useStore = create<StoreState>((set) => ({
+const useStore = create<StoreState>(() => ({
+  speed: 0,
   tempo: 0,
-  key: undefined,
-  loudness: 0,
-  energy: 0,
 }))
 
 export default useStore

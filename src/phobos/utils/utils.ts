@@ -6,7 +6,7 @@ export const int32ToColor = (v: number): Color => new Color(((v >> 24) & 0xff) /
 const loadBinary = async (url: string) => {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`Failed to load: ${url}`);
+    return undefined;
   }
 
   const arrayBuffer = await response.arrayBuffer();
