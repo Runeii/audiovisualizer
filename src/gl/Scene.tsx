@@ -49,7 +49,7 @@ const Scene = () => {
      {mesh3 && <primitive object={mesh3} scale={48} />}
      <Player mesh={ships?.[0]} spline={spline} />
      {spline  && (
-      <mesh>
+      <mesh visible={false}>
         <tubeGeometry args={[spline, spline.points.length, 50, 5, true]} />
         <meshBasicMaterial color={0xff00ff} />
       </mesh>
