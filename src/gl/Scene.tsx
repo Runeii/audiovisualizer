@@ -52,9 +52,9 @@ const Scene = () => {
      {mesh && <primitive object={mesh} />}
      {mesh2 && <primitive object={mesh2} />}
      {mesh3 && <primitive object={mesh3} scale={48} />}
-     <Ship isPlayer mesh={ships?.[0]} splineRef={playerSpline} />
-     <Ship mesh={ships?.[2]} splineRef={ship1Spline} />
-     <Ship mesh={ships?.[4]} splineRef={ship2Spline} />
+     <Ship isPlayer mesh={ships?.[0]} splineRef={playerSpline} speed={1} />
+     <Ship mesh={ships?.[2]} splineRef={ship1Spline} speed={1} />
+     <Ship mesh={ships?.[1]} splineRef={ship2Spline} speed={1} />
      <Spline spline={spline} ref={playerSpline} />
      <Spline spline={spline} ref={ship1Spline} x={600} />
      <Spline spline={spline} ref={ship2Spline} x={-800} />
