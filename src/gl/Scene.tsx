@@ -1,5 +1,5 @@
 import { useFrame, useThree } from "@react-three/fiber"
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { loadPath } from "../phobos";
 import { BufferGeometry, Mesh, MeshBasicMaterial, Object3D, Vector3 } from "three";
 import { Tracks } from "../phobos/constants";
@@ -7,7 +7,8 @@ import { createCameraSpline } from "../phobos/camera";
 import HermiteCurve3 from "../phobos/utils/HermiteCurve3";
 import { Sphere } from "@react-three/drei";
 import useStore from "../store";
-import Player from "./Player/Player";
+import Ship from "./Ship/Ship";
+import Spline from "./Spline/Spline";
 
 let hasModels = false;
 const Scene = () => {
@@ -42,18 +43,21 @@ const Scene = () => {
     });
   });
 
+  const playerSpline = useRef<HermiteCurve3>(null);
+  const ship1Spline = useRef<HermiteCurve3>(null);
+  const ship2Spline = useRef<HermiteCurve3>(null);
+
   return (
     <>
      {mesh && <primitive object={mesh} />}
      {mesh2 && <primitive object={mesh2} />}
      {mesh3 && <primitive object={mesh3} scale={48} />}
-     <Player mesh={ships?.[0]} spline={spline} />
-     {spline  && (
-      <mesh visible={false}>
-        <tubeGeometry args={[spline, spline.points.length, 50, 5, true]} />
-        <meshBasicMaterial color={0xff00ff} />
-      </mesh>
-     )}
+     <Ship isPlayer mesh={ships?.[0]} splineRef={playerSpline} />
+     <Ship mesh={ships?.[2]} splineRef={ship1Spline} />
+     <Ship mesh={ships?.[4]} splineRef={ship2Spline} />
+     <Spline spline={spline} ref={playerSpline} />
+     <Spline spline={spline} ref={ship1Spline} x={600} />
+     <Spline spline={spline} ref={ship2Spline} x={-800} />
     </>
   );
 }
