@@ -1,6 +1,6 @@
 import { forwardRef, useMemo } from "react";
 import HermiteCurve3 from "../../phobos/utils/HermiteCurve3";
-import { Vector3 } from "three";
+import { Color, Vector3 } from "three";
 
 type SplineProps = {
   spline?: HermiteCurve3;
@@ -17,7 +17,7 @@ const Spline = forwardRef<HermiteCurve3, SplineProps>(({spline, x = 0}, ref) => 
     
     const newSpline = spline?.clone()
     newSpline.points = spline.points.map((point) => new Vector3().copy(point).setX(point.x + x));
-
+newSpline.tension = 0.1;
     if (ref && typeof ref === 'object') {
       ref.current = newSpline;
     }
@@ -25,14 +25,15 @@ const Spline = forwardRef<HermiteCurve3, SplineProps>(({spline, x = 0}, ref) => 
     return newSpline;
   }, [hasValidSpline, ref, spline, x]);
 
+  const color = useMemo(() => new Color(Math.random(), Math.random(), Math.random()), []);
   if (!hasValidSpline || !thisSpline) {
     return null;
   }
 
   return (
-    <mesh visible={false}>
+    <mesh visible={true}>
       <tubeGeometry args={[thisSpline, thisSpline.points.length, 50, 5, true]} />
-      <meshBasicMaterial color={0xff00ff} />
+      <meshBasicMaterial color={color} />
     </mesh>
   );
 });

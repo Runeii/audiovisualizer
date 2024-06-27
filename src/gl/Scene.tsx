@@ -1,39 +1,26 @@
-import { useFrame, useThree } from "@react-three/fiber"
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useFrame } from "@react-three/fiber"
+import { useEffect, useRef, useState } from "react";
 import { loadPath } from "../phobos";
-import { BufferGeometry, Mesh, MeshBasicMaterial, Object3D, Vector3 } from "three";
+import { Mesh } from "three";
 import { Tracks } from "../phobos/constants";
-import { createCameraSpline } from "../phobos/camera";
 import HermiteCurve3 from "../phobos/utils/HermiteCurve3";
-import { Sphere } from "@react-three/drei";
-import useStore from "../store";
 import Ship from "./Ship/Ship";
 import Spline from "./Spline/Spline";
+import Level from "./Level/Level";
 
-let hasModels = false;
 const Scene = () => {
-
-  const [mesh, setMesh] = useState<Mesh>();
-  const [mesh2, setMesh2] = useState<Object3D>();
-  const [mesh3, setMesh3] = useState<Object3D>();
-  const [ships, setShips] = useState<Mesh[]>();
+  const [objects, setObjects] = useState<Record<string, Mesh>>();
   const [spline, setSpline] = useState<HermiteCurve3>();
 
   useEffect(() => {
-    if (hasModels) {
+    if (objects) {
       return;
     }
     loadPath(Tracks.Wipeout2097[Math.round(Tracks.Wipeout2097.length * Math.random())].path).then(({ spline, sky, scene, ships, track }) => {
-    setMesh(track)
-     setMesh2(scene)
-     setMesh3(sky)
-     setShips(ships.children as Mesh[])
-     setSpline(spline)
-      hasModels = true;
+      setObjects({ land: track, scenery: scene, sky, ships });
+      setSpline(spline)
     });
-  }, []);
-
-  const scene = useThree(state => state.scene);
+  }, [objects]);
 
   useFrame(({camera, scene}) => {
     scene.traverse((object) => {
@@ -47,14 +34,16 @@ const Scene = () => {
   const ship1Spline = useRef<HermiteCurve3>(null);
   const ship2Spline = useRef<HermiteCurve3>(null);
 
+  if (!objects) {
+    return null;
+  }
+
   return (
     <>
-     {mesh && <primitive object={mesh} />}
-     {mesh2 && <primitive object={mesh2} />}
-     {mesh3 && <primitive object={mesh3} scale={48} />}
-     <Ship isPlayer mesh={ships?.[0]} splineRef={playerSpline} speed={1} />
-     <Ship mesh={ships?.[2]} splineRef={ship1Spline} speed={1} />
-     <Ship mesh={ships?.[1]} splineRef={ship2Spline} speed={1} />
+      <Level land={objects.land} scenery={objects.scenery} sky={objects.sky} />
+     <Ship mesh={objects.ships.children[1]} splineRef={playerSpline} speed={1} />
+     <Ship isPlayer mesh={objects.ships.children[0]} splineRef={ship2Spline} speed={1} />
+     <Ship mesh={objects.ships.children[2]} splineRef={ship1Spline} speed={1} />
      <Spline spline={spline} ref={playerSpline} />
      <Spline spline={spline} ref={ship1Spline} x={600} />
      <Spline spline={spline} ref={ship2Spline} x={-800} />

@@ -5,9 +5,9 @@ import { MutableRefObject, useMemo, useRef } from "react";
 import useStore from "../../store";
 import { Sphere } from "@react-three/drei";
 
-const TARGET_SPEED = 10;
 const CAMERA_VERTICAL_OFFSET = new Vector3(0, 350, 0);
 const CAMERA_BEHIND_OFFSET = 2000;
+const LOOKAHEAD_DISTANCE = 0.004;
 const ROLL_STRENGTH = 0.5;
 const ROLL_MAX = 0.5;
 
@@ -16,7 +16,20 @@ const UP = new Vector3(0, 1, 0);
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
-const Ship = ({ isPlayer = false, mesh, speed, splineRef }: { isPlayer: boolean, mesh?: Mesh, splineRef?: MutableRefObject<HermiteCurve3 | null>}) => {
+let currentSplinePosition: Vector3;
+let currentSplineTangent: Vector3;
+let normalizedCurrentSplineTangent: Vector3;
+let upcomingSplinePosition: Vector3;
+let upcomingSplineTangent: Vector3;
+
+type ShipProps = {
+  isPlayer: boolean;
+  mesh?: Mesh;
+  speed: number;
+  splineRef?: MutableRefObject<HermiteCurve3 | null>;
+}
+
+const Ship = ({ isPlayer = false, mesh, speed, splineRef }: ShipProps) => {
   const tempo = useStore(state => state.tempo);
 
   const shipRef = useRef<Mesh>();
@@ -25,10 +38,11 @@ const Ship = ({ isPlayer = false, mesh, speed, splineRef }: { isPlayer: boolean,
   const debugForwardRef = useRef<Mesh>();
   const debugPlayerRef = useRef<Mesh>();
 
-  useFrame(({ camera }) => {
+  useFrame(() => {
     if (!shipRef.current || !splineRef || !splineRef.current ) {
       return;
     }
+  
     const spline = splineRef.current;
 
     const BASE_MOVEMENT = 0.00008;
@@ -41,12 +55,20 @@ const Ship = ({ isPlayer = false, mesh, speed, splineRef }: { isPlayer: boolean,
     currentProgress.current += progressChange;
     currentProgress.current %= 1;
 
-    const currentSplinePosition = spline.getPointAt(currentProgress.current).clone();
-    const currentSplineTangent = spline.getTangentAt(currentProgress.current).clone();
+    currentSplinePosition = spline.getPointAt(currentProgress.current).clone();
+    currentSplineTangent = spline.getTangentAt(currentProgress.current).clone();
 
-    const nextProgress = (currentProgress.current + 0.002) % 1;
-    const upcomingSplinePosition = spline.getPointAt(nextProgress).clone();
-    const upcomingSplineTangent = spline.getTangentAt(nextProgress).clone();
+    const nextProgress = (currentProgress.current + LOOKAHEAD_DISTANCE) % 1;
+    upcomingSplinePosition = spline.getPointAt(nextProgress).clone();
+    upcomingSplineTangent = spline.getTangentAt(nextProgress).clone();
+  
+    normalizedCurrentSplineTangent = currentSplineTangent.clone().normalize();
+  })
+
+  useFrame(() => {
+    if (!shipRef.current) {
+      return;
+    }
   
     debugForwardRef.current.position.copy(upcomingSplinePosition);
     if (debugPlayerRef.current) {
@@ -55,17 +77,15 @@ const Ship = ({ isPlayer = false, mesh, speed, splineRef }: { isPlayer: boolean,
     
     // Calculate current turning direction
     const curvature = currentSplineTangent.angleTo(upcomingSplineTangent);
-    const direction = upcomingSplineTangent.x < currentSplineTangent.x ? -1 : 1;
+    const direction = upcomingSplineTangent.x < currentSplineTangent.x ? 1 : -1;
     debugForwardRef.current?.material.color.set(direction > 0 ? 0x0000ff : 0x00ff00);
 
     const rollAmount = clamp(curvature * ROLL_STRENGTH * direction, -ROLL_MAX, ROLL_MAX);
-
-    const normalizedTangent = currentSplineTangent.clone().normalize();
   
     // Set ship values
     shipRef.current.position.copy(currentSplinePosition);
     shipRef.current.position.y += 150;
-    shipRef.current.lookAt(currentSplinePosition.clone().add(normalizedTangent));
+    shipRef.current.lookAt(currentSplinePosition.clone().add(normalizedCurrentSplineTangent));
 
     // Look at the next point
     const lookAtMatrix = new Matrix4();
@@ -80,20 +100,24 @@ const Ship = ({ isPlayer = false, mesh, speed, splineRef }: { isPlayer: boolean,
     const correctiveQuaternion = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI);
     lookAtQuaternion.multiply(correctiveQuaternion);
     shipRef.current.quaternion.copy(lookAtQuaternion);
+  });
 
-    if (isPlayer) {
-      const scaledTangent = normalizedTangent.multiplyScalar(CAMERA_BEHIND_OFFSET);
-      const pointBehind = currentSplinePosition.clone().sub(scaledTangent).add(CAMERA_VERTICAL_OFFSET);
-    
-      camera.position.copy(pointBehind);
-
-      camera.lookAt(currentSplinePosition);
+  useFrame(({ camera }) => {
+    if (!isPlayer || !normalizedCurrentSplineTangent) {
+      return;
     }
+  
+    const scaledTangent = normalizedCurrentSplineTangent.multiplyScalar(CAMERA_BEHIND_OFFSET);
+    const pointBehind = currentSplinePosition.clone().sub(scaledTangent).add(CAMERA_VERTICAL_OFFSET);
+  
+    //camera.position.copy(pointBehind);
+
+    //camera.lookAt(currentSplinePosition);
   });
 
   const shipMesh = useMemo(() => mesh?.clone(), [mesh]);
 
-  if (!mesh) {
+  if (!shipMesh) {
     return null;
   }
 

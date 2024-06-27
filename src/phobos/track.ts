@@ -32,6 +32,7 @@ export const createTrackFromFiles = async (paths: Record<string, string>) => {
 
   const trackMaterials = createMeshFaceMaterial(composedImages, true, DoubleSide);
   // Weapon tile
+  trackMaterials[3].name = "tile-weapon";
   trackMaterials[3].vertexColors = false;
 
   const vertexCount = files.vertices.byteLength / TrackVertex.byteLength;
