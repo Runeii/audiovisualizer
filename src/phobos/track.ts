@@ -31,9 +31,15 @@ export const createTrackFromFiles = async (paths: Record<string, string>) => {
 
 
   const trackMaterials = createMeshFaceMaterial(composedImages, true, DoubleSide);
+
   // Weapon tile
   trackMaterials[3].name = "tile-weapon";
+  trackMaterials[3].userData.isWeapon = true;
   trackMaterials[3].vertexColors = false;
+
+  // Speed boost tile
+  trackMaterials[4].name = "tile-speed";
+  trackMaterials[4].userData.isSpeedBoost = true;
 
   const vertexCount = files.vertices.byteLength / TrackVertex.byteLength;
   const vertices = TrackVertex.readStructs(files.vertices, 0, vertexCount);
@@ -96,7 +102,7 @@ export const createTrackFromFiles = async (paths: Record<string, string>) => {
     polygons: polygonsWithTexturesApplied,
     trackMaterials
   })
-
+  track.name = "track";
   const spline = createCameraSpline(files.sections, polygonsWithTexturesApplied, vertices);
 
   return { spline, track };
