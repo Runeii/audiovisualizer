@@ -4,15 +4,17 @@ import { useFrame } from "@react-three/fiber";
 import { MutableRefObject, useRef } from "react";
 import { Vector3 } from "three";
 import HermiteCurve3 from "../../../phobos/utils/HermiteCurve3";
+import useStore from "../../../store";
 
 const BASE_MOVEMENT = 0.00007;
 const LOOKAHEAD_DISTANCE = 0.004;
+
+const TARGET_BPM = 120;
 
 type RouteProps = {
   isPlayer: boolean;
   splineRef: MutableRefObject<HermiteCurve3>;
   speedBoostLastTouched: number;
-  speed: number;
   setCurrentSplinePosition: (position: Vector3) => void;
   setCurrentSplineTangent: (tangent: Vector3) => void;
   setUpcomingSplinePosition: (tangent: Vector3) => void;
@@ -24,28 +26,18 @@ const Route = ({
   isPlayer,
   splineRef,
   speedBoostLastTouched,
-  speed,
   setCurrentSplinePosition,
   setCurrentSplineTangent,
   setUpcomingSplinePosition,
   setUpcomingSplineTangent,
   setNormalizedCurrentSplineTangent,
 }: RouteProps) => {
-  const currentProgress = useRef<number>(0);
-
   const [{speedBoostMultiplier}, speedApi] = useSpring(() => ({
     speedBoostMultiplier: 1,
   }), []);
 
-
-
+  // Handle speed tiles
   useFrame(() => {
-    if (!splineRef || !splineRef.current ) {
-      return;
-    }
-  
-    const spline = splineRef.current;
-
     const isSpeedBoostActive = Date.now() - speedBoostLastTouched < 2000; 
 
     const currentSpeedBoostMultiplier = speedBoostMultiplier.get()
@@ -61,13 +53,37 @@ const Route = ({
         config: { mass: 5, tension: 150, friction: 50, clamp: true}
       });
     }
-    let progressChange = speed * BASE_MOVEMENT * currentSpeedBoostMultiplier;
+  });
 
+  const [speed] = useSpring(() => ({
+    speed: 0,
+  }), []);
+
+  const tempo = useStore(state => state.tempo);
+
+  // Calculate current speed
+  useFrame(() => {
+    const tempoMultiplier = tempo / TARGET_BPM;
+    
+    let currentSpeed = BASE_MOVEMENT * tempoMultiplier * speedBoostMultiplier.get();
+  
     if (!isPlayer) {
-      progressChange *= (Math.random() + 0.5);
+      currentSpeed *= (Math.random() + 0.5);
     }
 
-    currentProgress.current += progressChange;
+    window.debug = `tempo: ${tempo}, tempoMultiplier: ${tempoMultiplier}, speedBoostMultiplier: ${speedBoostMultiplier.get()}`;
+    speed.speed.start(currentSpeed);
+  })
+
+  const currentProgress = useRef<number>(0);
+  // Calculate next position
+  useFrame(() => {
+    if (!splineRef || !splineRef.current ) {
+      return;
+    }
+  
+    const spline = splineRef.current;
+    currentProgress.current += speed.speed.get();
     currentProgress.current %= 1;
 
     const currentSplineTangent = spline.getTangentAt(currentProgress.current).clone()

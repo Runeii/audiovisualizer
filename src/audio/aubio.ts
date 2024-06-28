@@ -23,7 +23,7 @@ export const start = async (scriptProcessor: ScriptProcessorNode) => {
     scriptProcessor.bufferSize,
     scriptProcessor.context.sampleRate
   );
-  console.log('attach')
+
   scriptProcessor.addEventListener("audioprocess", handleTempo);
 }
 

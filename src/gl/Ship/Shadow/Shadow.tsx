@@ -1,12 +1,11 @@
 
-import { Sphere } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { MutableRefObject, useEffect, useMemo, useRef } from "react";
-import { DoubleSide, Euler, Mesh, MeshBasicMaterial, Quaternion, Vector3 } from "three";
+import {  RefObject, useMemo, useRef } from "react";
+import { DoubleSide, Mesh } from "three";
 
 type ShadowProps = {
   mesh: Mesh;
-  shipRef: MutableRefObject<Mesh>;
+  shipRef: RefObject<Mesh>;
 };
 
 const Shadow = ({ mesh, shipRef }: ShadowProps) => {
@@ -18,7 +17,7 @@ const Shadow = ({ mesh, shipRef }: ShadowProps) => {
       return;
     }
 
-    const { rotation, scale } = shipRef.current;
+    const { scale } = shipRef.current;
     const shrink = 0.5;
     shadowRef.current.scale.set(scale.x * shrink, 0.001, scale.z * shrink);
   })

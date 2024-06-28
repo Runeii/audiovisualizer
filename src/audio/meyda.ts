@@ -35,7 +35,7 @@ const handleExtractors = (features: MeydaFeaturesObject, loudnessTracker: ValueT
   const normalisedLoudness = normalize(loudness, minLoudness, maxLoudness);
 
   // Calculate speed factor
-  const speedFactor = (0.25 * normalisedZcr) + (0.25 * normalisedSpectralCentroid) + (0.5 * normalisedLoudness);
+  const speedFactor = (0.25 * normalisedZcr) + (0.5 * normalisedSpectralCentroid) + (0.5 * normalisedLoudness);
 
   useStore.setState({
     speed: speedFactor,

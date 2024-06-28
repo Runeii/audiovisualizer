@@ -3,6 +3,7 @@ import { Matrix4, Mesh, Quaternion, Vector3 } from "three";
 import { useFrame } from "@react-three/fiber";
 import { clamp } from "three/src/math/MathUtils.js";
 import { RefObject } from "react";
+import { useSpring } from "@react-spring/three";
 
 const ROLL_STRENGTH = 1;
 const ROLL_MAX = 0.5;
@@ -19,11 +20,14 @@ type MovementProps = {
 const Movement = ({
     currentSplinePosition,
     currentSplineTangent,
-    isPlayer,
     shipRef,
     upcomingSplineTangent,
-    upcomingSplinePosition,
 }: MovementProps) => {
+  const [roll] = useSpring(() => ({
+    roll: 0,
+    config: { mass: 10 , tension: 500, friction: 100 }
+  }), []);
+
   useFrame(() => {
     if (typeof shipRef === 'function' || !shipRef || !shipRef.current) {
       return;
@@ -35,7 +39,7 @@ const Movement = ({
     const crossProduct = new Vector3().crossVectors(currentSplineTangent, upcomingSplineTangent);
     const direction = crossProduct.dot(UP) > 0 ? 1 : -1;
 
-    const rollAmount = clamp(curvature * ROLL_STRENGTH * direction, -ROLL_MAX, ROLL_MAX);
+    roll.roll.start(clamp(curvature * ROLL_STRENGTH * direction, -ROLL_MAX, ROLL_MAX));
 
     // Set ship values
     shipRef.current.position.copy(currentSplinePosition);
@@ -47,7 +51,7 @@ const Movement = ({
 
     // Apply roll
     const lookAtQuaternion = new Quaternion().setFromRotationMatrix(lookAtMatrix);
-    const rollQuaternion = new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), rollAmount);
+    const rollQuaternion = new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), roll.roll.get());
     lookAtQuaternion.multiply(rollQuaternion);
 
     // Ensure the ship rotates 180 degrees to face the right way
@@ -56,7 +60,7 @@ const Movement = ({
     shipRef.current.quaternion.copy(lookAtQuaternion);
   });
 
-
+  return null;
 };
 
 export default Movement;

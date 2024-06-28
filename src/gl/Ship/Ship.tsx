@@ -7,18 +7,15 @@ import Camera from "./Camera/Camera";
 import Shadow from "./Shadow/Shadow";
 import Route from "./Route/Route";
 import { TILE_TYPES, queryCurrentTile } from "./utils";
-import Exhaust from "./Exhaust/Exhaust";
-import { Line, Sphere } from "@react-three/drei";
 
 type ShipProps = {
   isPlayer: boolean;
   mesh?: Mesh;
-  speed: number;
   splineRef: MutableRefObject<HermiteCurve3>;
   track: Mesh;
 }
 
-const Ship = ({ isPlayer = false, mesh, speed, splineRef, track }: ShipProps) => {
+const Ship = ({ isPlayer = false, mesh, splineRef, track }: ShipProps) => {
   const shipRef = useRef<Mesh>(null);
 
   const shipMesh = useMemo(() => mesh?.clone(), [mesh]);
@@ -32,7 +29,7 @@ const Ship = ({ isPlayer = false, mesh, speed, splineRef, track }: ShipProps) =>
   const [upcomingSplineTangent, setUpcomingSplineTangent] = useState(new Vector3(0, 0, 0));
 
   useFrame(() => {
-    if (!shipRef.current || !track || !isPlayer) {
+    if (!shipRef.current || !track) {
       return;
     }
     const currentTile = queryCurrentTile(shipRef.current?.position, track);
@@ -47,17 +44,11 @@ const Ship = ({ isPlayer = false, mesh, speed, splineRef, track }: ShipProps) =>
   }
 
   return (
-    <>
-    <Sphere args={[50, 10, 10]} position={upcomingSplinePosition} scale={5}>
-      <meshBasicMaterial color="red" />
-    </Sphere>
-    <Line points={[currentSplinePosition, upcomingSplinePosition]} />
     <primitive object={shipMesh} ref={shipRef} scale={1.5}>
       <Route
         isPlayer={isPlayer}
         splineRef={splineRef}
         speedBoostLastTouched={speedBoostLastTouched}
-        speed={speed}
         setCurrentSplinePosition={setCurrentSplinePosition}
         setCurrentSplineTangent={setCurrentSplineTangent}
         setUpcomingSplineTangent={setUpcomingSplineTangent}
@@ -67,7 +58,6 @@ const Ship = ({ isPlayer = false, mesh, speed, splineRef, track }: ShipProps) =>
       <Movement
         currentSplinePosition={currentSplinePosition}
         currentSplineTangent={currentSplineTangent}
-        isPlayer={isPlayer}
         shipRef={shipRef}
         upcomingSplineTangent={upcomingSplineTangent}
         upcomingSplinePosition={upcomingSplinePosition}
@@ -78,7 +68,6 @@ const Ship = ({ isPlayer = false, mesh, speed, splineRef, track }: ShipProps) =>
       />
       <Shadow mesh={shipMesh} shipRef={shipRef} />
     </primitive>
-    </>
   );
 }
 
