@@ -41,9 +41,9 @@ const Scene = () => {
   return (
     <>
       <Level land={objects.land} scenery={objects.scenery} sky={objects.sky} />
-     <Ship mesh={objects.ships.children[1]} splineRef={playerSpline} speed={1} />
-     <Ship isPlayer mesh={objects.ships.children[0]} splineRef={ship2Spline} speed={1} />
-     <Ship mesh={objects.ships.children[2]} splineRef={ship1Spline} speed={1} />
+     <Ship mesh={objects.ships.children[1]} splineRef={playerSpline} speed={1} track={objects.land} />
+     <Ship isPlayer mesh={objects.ships.children[0]} splineRef={ship2Spline} speed={1} track={objects.land} />
+     <Ship mesh={objects.ships.children[2]} splineRef={ship1Spline} speed={1} track={objects.land} />
      <Spline spline={spline} ref={playerSpline} />
      <Spline spline={spline} ref={ship1Spline} x={600} />
      <Spline spline={spline} ref={ship2Spline} x={-800} />
