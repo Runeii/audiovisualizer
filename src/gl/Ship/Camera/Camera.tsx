@@ -2,8 +2,8 @@
 import { useFrame } from "@react-three/fiber";
 import { Vector3 } from "three";
 
-const CAMERA_VERTICAL_OFFSET = new Vector3(0, 350, 0);
-const CAMERA_BEHIND_OFFSET = 2000;
+const CAMERA_VERTICAL_OFFSET = new Vector3(0, 550, 0);
+const CAMERA_BEHIND_OFFSET = 2500;
 
 type CameraProps = {
   currentSplinePosition: Vector3;

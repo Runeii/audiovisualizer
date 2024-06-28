@@ -41,7 +41,7 @@ const Route = ({
   
     const spline = splineRef.current;
 
-    const BASE_MOVEMENT = 0.00008;
+    const BASE_MOVEMENT = 0.0001;
     //currentProgress.current += STEPS * 10;
     const isSpeedBoostActive = Date.now() - speedBoostLastTouched < 2000; 
 

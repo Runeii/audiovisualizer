@@ -34,7 +34,7 @@ const Movement = ({
 
     // Set ship values
     shipRef.current.position.copy(currentSplinePosition);
-    shipRef.current.position.y += 300;
+    shipRef.current.position.y += 150;
 
     // Look at the next point
     const lookAtMatrix = new Matrix4();

@@ -17,7 +17,6 @@ export const queryCurrentTile = (position: Vector3, track: Mesh) => {
   const intersects = raycaster.intersectObject(track, true);
 
   if (intersects.length === 0) {
-    console.warn("Above nothing?")
     return TILE_TYPES.WALL;
   }
 

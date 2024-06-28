@@ -33,6 +33,7 @@ const Ship = ({ isPlayer = false, mesh, speed, splineRef, track }: ShipProps) =>
       return;
     }
     const currentTile = queryCurrentTile(shipRef.current?.position, track);
+
     if (currentTile === TILE_TYPES.SPEED_BOOST) {
       setSpeedBoostLastTouched(Date.now());
     }
@@ -44,7 +45,7 @@ const Ship = ({ isPlayer = false, mesh, speed, splineRef, track }: ShipProps) =>
 
   return (
     <>
-      <primitive object={shipMesh} ref={shipRef} />
+      <primitive object={shipMesh} ref={shipRef} scale={1.5} />
       <Route
         isPlayer={isPlayer}
         splineRef={splineRef}

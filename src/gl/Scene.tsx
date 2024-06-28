@@ -16,7 +16,8 @@ const Scene = () => {
     if (objects) {
       return;
     }
-    loadPath(Tracks.Wipeout2097[Math.round(Tracks.Wipeout2097.length * Math.random())].path).then(({ spline, sky, scene, ships, track }) => {
+    const index = Math.round(Tracks.Wipeout2097.length * Math.random());
+    loadPath(Tracks.Wipeout2097[index].path).then(({ spline, sky, scene, ships, track }) => {
       setObjects({ land: track, scenery: scene, sky, ships });
       setSpline(spline)
     });
