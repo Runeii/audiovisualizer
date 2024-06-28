@@ -7,6 +7,7 @@ import Camera from "./Camera/Camera";
 import Shadow from "./Shadow/Shadow";
 import Route from "./Route/Route";
 import { TILE_TYPES, queryCurrentTile } from "./utils";
+import Exhaust from "./Exhaust/Exhaust";
 
 type ShipProps = {
   isPlayer: boolean;
@@ -44,8 +45,7 @@ const Ship = ({ isPlayer = false, mesh, speed, splineRef, track }: ShipProps) =>
   }
 
   return (
-    <>
-      <primitive object={shipMesh} ref={shipRef} scale={1.5} />
+      <primitive object={shipMesh} ref={shipRef} scale={1.5}>
       <Route
         isPlayer={isPlayer}
         splineRef={splineRef}
@@ -66,8 +66,8 @@ const Ship = ({ isPlayer = false, mesh, speed, splineRef, track }: ShipProps) =>
         currentSplinePosition={currentSplinePosition}
         normalizedCurrentSplineTangent={normalizedCurrentSplineTangent}
       />
-      <Shadow />
-    </>
+      <Shadow mesh={shipMesh} shipRef={shipRef} />
+    </primitive>
   );
 }
 
