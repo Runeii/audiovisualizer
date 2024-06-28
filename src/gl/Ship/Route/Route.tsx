@@ -5,6 +5,7 @@ import { MutableRefObject, useRef } from "react";
 import { Vector3 } from "three";
 import HermiteCurve3 from "../../../phobos/utils/HermiteCurve3";
 
+const BASE_MOVEMENT = 0.00007;
 const LOOKAHEAD_DISTANCE = 0.004;
 
 type RouteProps = {
@@ -14,6 +15,7 @@ type RouteProps = {
   speed: number;
   setCurrentSplinePosition: (position: Vector3) => void;
   setCurrentSplineTangent: (tangent: Vector3) => void;
+  setUpcomingSplinePosition: (tangent: Vector3) => void;
   setUpcomingSplineTangent: (tangent: Vector3) => void;
   setNormalizedCurrentSplineTangent: (tangent: Vector3) => void;
 };
@@ -25,6 +27,7 @@ const Route = ({
   speed,
   setCurrentSplinePosition,
   setCurrentSplineTangent,
+  setUpcomingSplinePosition,
   setUpcomingSplineTangent,
   setNormalizedCurrentSplineTangent,
 }: RouteProps) => {
@@ -34,6 +37,8 @@ const Route = ({
     speedBoostMultiplier: 1,
   }), []);
 
+
+
   useFrame(() => {
     if (!splineRef || !splineRef.current ) {
       return;
@@ -41,8 +46,6 @@ const Route = ({
   
     const spline = splineRef.current;
 
-    const BASE_MOVEMENT = 0.0001;
-    //currentProgress.current += STEPS * 10;
     const isSpeedBoostActive = Date.now() - speedBoostLastTouched < 2000; 
 
     const currentSpeedBoostMultiplier = speedBoostMultiplier.get()
@@ -72,6 +75,7 @@ const Route = ({
     setCurrentSplineTangent(currentSplineTangent);
 
     const nextProgress = (currentProgress.current + LOOKAHEAD_DISTANCE) % 1;
+    setUpcomingSplinePosition(spline.getPointAt(nextProgress).clone());
     setUpcomingSplineTangent(spline.getTangentAt(nextProgress).clone());
     setNormalizedCurrentSplineTangent(currentSplineTangent.clone().normalize());
   })

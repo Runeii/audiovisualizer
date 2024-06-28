@@ -4,7 +4,7 @@ import { useFrame } from "@react-three/fiber";
 import { clamp } from "three/src/math/MathUtils.js";
 import { RefObject } from "react";
 
-const ROLL_STRENGTH = 0.5;
+const ROLL_STRENGTH = 1;
 const ROLL_MAX = 0.5;
 const UP = new Vector3(0, 1, 0);
 
@@ -13,13 +13,16 @@ type MovementProps = {
   currentSplineTangent: Vector3;
   shipRef: RefObject<Mesh>;
   upcomingSplineTangent: Vector3;
+  upcomingSplinePosition: Vector3;
 };
 
 const Movement = ({
     currentSplinePosition,
     currentSplineTangent,
+    isPlayer,
     shipRef,
-    upcomingSplineTangent
+    upcomingSplineTangent,
+    upcomingSplinePosition,
 }: MovementProps) => {
   useFrame(() => {
     if (typeof shipRef === 'function' || !shipRef || !shipRef.current) {
@@ -28,7 +31,9 @@ const Movement = ({
 
     // Calculate current turning direction
     const curvature = currentSplineTangent.angleTo(upcomingSplineTangent);
-    const direction = upcomingSplineTangent.x < currentSplineTangent.x ? 1 : -1;
+
+    const crossProduct = new Vector3().crossVectors(currentSplineTangent, upcomingSplineTangent);
+    const direction = crossProduct.dot(UP) > 0 ? 1 : -1;
 
     const rollAmount = clamp(curvature * ROLL_STRENGTH * direction, -ROLL_MAX, ROLL_MAX);
 
@@ -51,7 +56,7 @@ const Movement = ({
     shipRef.current.quaternion.copy(lookAtQuaternion);
   });
 
-  return null;
+
 };
 
 export default Movement;

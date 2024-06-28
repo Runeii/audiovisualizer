@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei';
 import useStore from '../store';
 import Scene from './Scene';
+import Debug from './Debug/Debug';
 
 const World = () => {
   const tempo = useStore(state => state.tempo);
@@ -16,12 +17,7 @@ const World = () => {
     }}>
       <Scene />
       <OrbitControls />
-
-
-      <mesh>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="hotpink" />
-      </mesh>
+      <Debug />
     </Canvas>
   );
 }

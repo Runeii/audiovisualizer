@@ -36,3 +36,21 @@ export const queryCurrentTile = (position: Vector3, track: Mesh) => {
 
   return TILE_TYPES.WALL;
 }
+
+export const getSideOfLine = (p1: Vector3, p2: Vector3, p3: Vector3) => {
+  // Calculate the vectors
+  const v1 = { x: p2.x - p1.x, y: p2.y - p1.y };
+  const v2 = { x: p3.x - p1.x, y: p3.y - p1.y };
+
+  // Compute the cross product of v1 and v2
+  const crossProduct = v1.x * v2.y - v1.y * v2.x;
+
+  // Determine the side
+  if (crossProduct > 0) {
+    return 'left';
+  } else if (crossProduct < 0) {
+    return 'right';
+  } else {
+    return 'on the line';
+  }
+}
