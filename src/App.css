@@ -13,19 +13,6 @@
   height: 100%;
 }
 
-.start {
-  position: fixed;
-  background-color: black;
-  width: 200px;
-  height: 120px;
-  display: flex;
-  place-content: center;
-  place-items: center;
-  position: fixed;
-  inset: 50%;
-  translate: -50% -50%;
-}
-
 .title {
   display: flex;
   flex-direction: column;
@@ -53,5 +40,17 @@
     padding: 0;
     margin: 0;
     width: 100%;
+  }
+
+  &::before {
+    position: absolute;
+    inset: -100vw;
+    cursor: pointer;
+    content: "";
+    z-index: -1;
+  }
+
+  &.hasLaunched::before {
+    cursor: default;
   }
 }
