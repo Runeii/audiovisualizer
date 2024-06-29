@@ -13,12 +13,13 @@ type ShipProps = {
   playerIndex: number;
   isPlayer: boolean;
   mesh?: Mesh;
+  setIsRunning: (isRunning: boolean) => void;
   spline: HermiteCurve3;
   track: Mesh;
   x: number;
 }
 
-const Ship = ({ isPlayer = false, mesh, playerIndex, spline, track, x }: ShipProps) => {
+const Ship = ({ isPlayer = false, mesh, playerIndex, setIsRunning, spline, track, x }: ShipProps) => {
   const shipRef = useRef<Mesh>(null);
   const splineRef = useRef<HermiteCurve3>(null);
 
@@ -48,31 +49,35 @@ const Ship = ({ isPlayer = false, mesh, playerIndex, spline, track, x }: ShipPro
   }
 
   return (
-    <primitive object={shipMesh} ref={shipRef} scale={1.5}>
+    <>
       <Spline spline={spline} ref={splineRef} track={track} x={x} />
-      <Route
-        playerIndex={playerIndex}
-        splineRef={splineRef}
-        speedBoostLastTouched={speedBoostLastTouched}
-        setCurrentSplinePosition={setCurrentSplinePosition}
-        setCurrentSplineTangent={setCurrentSplineTangent}
-        setUpcomingSplineTangent={setUpcomingSplineTangent}
-        setUpcomingSplinePosition={setUpcomingSplinePosition}
-        setNormalizedCurrentSplineTangent={setNormalizedCurrentSplineTangent}
-      />
-      <Movement
-        currentSplinePosition={currentSplinePosition}
-        currentSplineTangent={currentSplineTangent}
-        shipRef={shipRef}
-        upcomingSplineTangent={upcomingSplineTangent}
-        upcomingSplinePosition={upcomingSplinePosition}
-      />
-      <Camera
-        currentSplinePosition={currentSplinePosition}
-        normalizedCurrentSplineTangent={normalizedCurrentSplineTangent}
-      />
-      <Shadow mesh={shipMesh} shipRef={shipRef} />
-    </primitive>
+      <primitive object={shipMesh} ref={shipRef} scale={1.5}>
+        <Route
+          isPlayer={isPlayer}
+          playerIndex={playerIndex}
+          splineRef={splineRef}
+          speedBoostLastTouched={speedBoostLastTouched}
+          setCurrentSplinePosition={setCurrentSplinePosition}
+          setCurrentSplineTangent={setCurrentSplineTangent}
+          setUpcomingSplineTangent={setUpcomingSplineTangent}
+          setUpcomingSplinePosition={setUpcomingSplinePosition}
+          setNormalizedCurrentSplineTangent={setNormalizedCurrentSplineTangent}
+        />
+        <Movement
+          currentSplinePosition={currentSplinePosition}
+          currentSplineTangent={currentSplineTangent}
+          shipRef={shipRef}
+          upcomingSplineTangent={upcomingSplineTangent}
+          upcomingSplinePosition={upcomingSplinePosition}
+        />
+        <Camera
+          currentSplinePosition={currentSplinePosition}
+          normalizedCurrentSplineTangent={normalizedCurrentSplineTangent}
+          onCameraReady={setIsRunning}
+        />
+        <Shadow mesh={shipMesh} shipRef={shipRef} />
+      </primitive>
+    </>
   );
 }
 

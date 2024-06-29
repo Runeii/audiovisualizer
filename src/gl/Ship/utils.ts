@@ -1,4 +1,6 @@
 import { Mesh, Raycaster, Vector3 } from "three";
+import useStore from "../../store";
+import { NUMBER_OF_PLAYERS } from "../constants";
 
 const DOWN = new Vector3(0, -1, 0);
 
@@ -53,4 +55,14 @@ export const getSideOfLine = (p1: Vector3, p2: Vector3, p3: Vector3) => {
   } else {
     return 'on the line';
   }
+}
+
+export const convertLoudnessToSpeed = (shipIndex: number, isPlayer: boolean) => {
+  if (isPlayer) {
+    return 0.5;
+  }
+  const NUMBER_OF_AI = NUMBER_OF_PLAYERS - 1;
+  const bandsPerPlayer = Math.round(24 / NUMBER_OF_AI);
+  const startOfThisPlayerBands = (bandsPerPlayer * shipIndex);
+  return useStore.getState().loudness.slice(startOfThisPlayerBands, startOfThisPlayerBands + bandsPerPlayer).reduce((acc, val) => (acc + val), 0) / (bandsPerPlayer / 2);
 }

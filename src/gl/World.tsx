@@ -10,7 +10,7 @@ const World = () => {
   const tempo = useStore(state => state.tempo);
   
   const [isWorldVisible, setIsWorldVisible] = useState(false);
-  const [hasMountedScene, setHasMountedScene] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
 
   const hasAudio = tempo > 0;
 
@@ -49,12 +49,11 @@ const World = () => {
         near: 64,
         far: 2048576,
       }}
-      className={`${styles.world} ${isWorldVisible && hasMountedScene ? styles.isVisible : ''}`}
+      className={`${styles.world} ${isWorldVisible && isRunning ? styles.isVisible : ''}`}
     >
       <Scene
         isWorldVisible={isWorldVisible || !isFadedOut}
-        hasMountedScene={hasMountedScene}
-        setHasMountedScene={setHasMountedScene}
+        setIsRunning={setIsRunning}
       />
       <OrbitControls />
       <HUD />

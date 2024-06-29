@@ -28,13 +28,9 @@ function App() {
   const tempo = useStore(state => state.tempo)
   return (
     <>
+      <div className="title"><h1>Wipeout Music Visualizer</h1><br /><span class="subhead">Listening for audio</span></div>
       <World className="world" />
       {!hasLaunched && <button className="start" onClick={handleClicked}>Start</button>}
-      <div className="ui">
-        Current bpm: {tempo}<br />
-        Target speed: {tempo}<br />
-        Current speed: {tempo}
-      </div>
     </>
   )
 }

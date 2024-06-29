@@ -25,3 +25,33 @@
   inset: 50%;
   translate: -50% -50%;
 }
+
+.title {
+  display: flex;
+  flex-direction: column;
+  place-content: center;
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 50%;
+  margin-left: auto;
+  font-family: "2097";
+  color: white;
+  text-align: center;
+
+  h1 {
+    font-size: 2rem;
+    padding: 0;
+    margin: 0;
+  }
+
+  span {
+    position: absolute;
+    top: 100%;
+    font-size: 1rem;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+  }
+}

@@ -4,7 +4,6 @@ import { createMeshFaceMaterial, readImage, unpackImages } from "./materials";
 import { loadBinaries } from "./utils/utils";
 import { createCameraSpline } from "./camera";
 import { __deprecated_createTrack } from "./deprecated/__toupgrade";
-import Struct from "./utils/struct";
 
 export const createTrackFromFiles = async (paths: Record<string, string>) => {
   const files = await loadBinaries(paths);

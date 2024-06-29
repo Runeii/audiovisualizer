@@ -1,4 +1,4 @@
-import { forwardRef, useMemo } from "react";
+import { forwardRef, useMemo, useRef } from "react";
 import HermiteCurve3 from "../../../phobos/utils/HermiteCurve3";
 import { Color, Mesh, Raycaster, Vector3 } from "three";
 import { SHIP_HOVER_HEIGHT } from "../../constants";
@@ -9,8 +9,11 @@ type SplineProps = {
   x?: number;
 }
 
+const IS_VISIBLE = true;
 const Spline = forwardRef<HermiteCurve3, SplineProps>(({ spline, track, x = 0 }, ref) => {
   const hasValidSpline = spline && spline.points.length > 0;
+
+  const splineRef = useRef<Mesh>(null);
 
   const thisSpline = useMemo(() => {
     if (!hasValidSpline) {
@@ -19,8 +22,11 @@ const Spline = forwardRef<HermiteCurve3, SplineProps>(({ spline, track, x = 0 },
 
   
     const newSpline = spline?.clone()
-    newSpline.points = spline.points.map((point) => {
-      const adjustedPoint = new Vector3().copy(point).setX(point.x + x)
+    newSpline.points = spline.points.map((point, index) => {
+      const tangent = spline.getTangentAt(index / spline.points.length).normalize();
+      const normal = new Vector3(-tangent.z, 0, tangent.x).normalize();
+      const adjustedPoint = new Vector3().copy(point).addScaledVector(normal, x);
+    
       if (!track) {
         return adjustedPoint;
       }
@@ -32,6 +38,7 @@ const Spline = forwardRef<HermiteCurve3, SplineProps>(({ spline, track, x = 0 },
       adjustedPoint.y += 1000;
 
       raycaster.set(adjustedPoint, DOWN);
+    
       const intersects = raycaster.intersectObject(track, true);
       if (intersects.length === 0) {
         adjustedPoint.y = point.y;
@@ -56,7 +63,7 @@ const Spline = forwardRef<HermiteCurve3, SplineProps>(({ spline, track, x = 0 },
   }
 
   return (
-    <mesh visible={false}>
+    <mesh ref={splineRef} visible={IS_VISIBLE}>
       <tubeGeometry args={[thisSpline, thisSpline.points.length, 50, 5, true]} />
       <meshBasicMaterial color={color} />
     </mesh>

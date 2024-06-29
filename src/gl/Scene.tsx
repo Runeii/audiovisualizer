@@ -1,5 +1,5 @@
 import { useFrame } from "@react-three/fiber"
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { loadPath } from "../phobos";
 import { Mesh } from "three";
 import { Tracks } from "../phobos/constants";
@@ -8,10 +8,9 @@ import Level from "./Level/Level";
 
 type SceneProps = {
   isWorldVisible: boolean;
-  hasMountedScene: boolean;
-  setHasMountedScene: (hasMountedScene: boolean) => void;
+  setIsRunning: (hasMountedScene: boolean) => void;
 }
-const Scene = ({ isWorldVisible, hasMountedScene, setHasMountedScene }: SceneProps) => {
+const Scene = ({ isWorldVisible, setIsRunning }: SceneProps) => {
   const [objects, setObjects] = useState<LevelObject[]>();
 
   const [currentTrack, setCurrentTrack] = useState(0);
@@ -33,25 +32,15 @@ const Scene = ({ isWorldVisible, hasMountedScene, setHasMountedScene }: ScenePro
     });
   });
 
-  const trackRef = useRef<Mesh>(null);
-
-  useFrame(() => {
-    if (hasMountedScene || !trackRef.current) {
-      return;
-    }
-    
-    setHasMountedScene(true);
-  })
-
   useEffect(() => {
     if (!isWorldVisible) {
       return;
     }
     setCurrentTrack(current => (current + 1) % Tracks.Wipeout2097.length);
     return () => {
-      setHasMountedScene(false);
+      setIsRunning(false);
     }
-  }, [isWorldVisible, setHasMountedScene]);
+  }, [isWorldVisible, setIsRunning]);
 
   if (!objects || !objects[currentTrack] || !isWorldVisible) {
     return null;
@@ -61,22 +50,19 @@ const Scene = ({ isWorldVisible, hasMountedScene, setHasMountedScene }: ScenePro
 
   return (
     <>
-      <Level land={track} scenery={scenery} sky={sky} trackRef={trackRef} />
-      {hasMountedScene && (
-        <>
-          {spline && ships.children.map((ship: Mesh, index: number) => (
-            <Ship
-              key={ship.id}
-              isPlayer={index === Math.round(ships.children.length / 2)}
-              playerIndex={index}
-              mesh={ship as Mesh}
-              spline={spline}
-              track={track}
-              x={(index - ships.children.length / 2) * 750}
-            />
-          ))}
-        </>
-      )}
+      <Level land={track} scenery={scenery} sky={sky}  />
+      {spline && ships.children.map((ship: Mesh, index: number) => (
+        <Ship
+          key={ship.id}
+          isPlayer={index === Math.round(ships.children.length / 2)}
+          playerIndex={index}
+          mesh={ship as Mesh}
+          setIsRunning={setIsRunning}
+          spline={spline}
+          track={track}
+          x={(index - ships.children.length / 2) * 750}
+        />
+      ))}
     </>
   );
 }

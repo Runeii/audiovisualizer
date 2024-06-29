@@ -8,11 +8,13 @@ const CAMERA_BEHIND_OFFSET = 2500;
 type CameraProps = {
   currentSplinePosition: Vector3;
   normalizedCurrentSplineTangent: Vector3;
+  onCameraReady: (isReady: boolean) => void;
 };
 
 const Camera = ({
   currentSplinePosition,
   normalizedCurrentSplineTangent,
+  onCameraReady,
 }: CameraProps) => {
   useFrame(({ camera }) => {
     const scaledTangent = normalizedCurrentSplineTangent.multiplyScalar(CAMERA_BEHIND_OFFSET);
@@ -21,6 +23,7 @@ const Camera = ({
    camera.position.copy(pointBehind);
 
    camera.lookAt(currentSplinePosition);
+   onCameraReady(true);
   });
 
   return null;

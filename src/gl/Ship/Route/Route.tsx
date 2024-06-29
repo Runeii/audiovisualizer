@@ -6,6 +6,7 @@ import { Vector3 } from "three";
 import HermiteCurve3 from "../../../phobos/utils/HermiteCurve3";
 import useStore from "../../../store";
 import { NUMBER_OF_PLAYERS } from "../../constants";
+import { convertLoudnessToSpeed } from "../utils";
 
 const BASE_MOVEMENT = 0.00007;
 const LOOKAHEAD_DISTANCE = 0.004;
@@ -13,6 +14,7 @@ const LOOKAHEAD_DISTANCE = 0.004;
 const TARGET_BPM = 120;
 
 type RouteProps = {
+  isPlayer: boolean;
   playerIndex: number;
   splineRef: RefObject<HermiteCurve3>;
   speedBoostLastTouched: number;
@@ -24,6 +26,7 @@ type RouteProps = {
 };
 
 const Route = ({
+  isPlayer,
   playerIndex,
   splineRef,
   speedBoostLastTouched,
@@ -65,11 +68,8 @@ const Route = ({
     const tempo = useStore.getState().tempo;
     const tempoMultiplier = tempo / TARGET_BPM;
   
-    // 24 bands of loudness 
-    const bandsPerPlayer = Math.round(24 / NUMBER_OF_PLAYERS);
-    const startOfThisPlayerBands = (bandsPerPlayer * playerIndex);
-    const currentLoudnessOfPlayer =
-      useStore.getState().loudness.slice(startOfThisPlayerBands, startOfThisPlayerBands + bandsPerPlayer).reduce((acc, val) => (acc + val), 0) / (bandsPerPlayer / 2);
+    // 24 bands of loudness
+    const currentLoudnessOfPlayer = convertLoudnessToSpeed(playerIndex, isPlayer);
 
     const currentSpeed = BASE_MOVEMENT * currentLoudnessOfPlayer * tempoMultiplier * speedBoostMultiplier.get();
     speed.speed.start(currentSpeed || 0.00005);

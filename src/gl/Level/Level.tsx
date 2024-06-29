@@ -6,9 +6,8 @@ type LevelProps = {
   land: Mesh;
   scenery: Mesh;
   sky: Mesh;
-  trackRef: RefObject<Mesh>;
 }
-const Level = ({ land, scenery, sky, trackRef }: LevelProps) => {
+const Level = ({ land, scenery, sky }: LevelProps) => {
   const weaponTileMaterial = useMemo(() => {
     if (!land.material) {
       return;
@@ -30,7 +29,7 @@ const Level = ({ land, scenery, sky, trackRef }: LevelProps) => {
 
   return (
     <>
-      <primitive object={land} ref={trackRef} />
+      <primitive object={land} />
       <primitive object={scenery} />
       <primitive object={sky} scale={48} />
     </>
