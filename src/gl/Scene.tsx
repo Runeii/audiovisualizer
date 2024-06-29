@@ -3,10 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { loadPath } from "../phobos";
 import { Mesh } from "three";
 import { Tracks } from "../phobos/constants";
-import HermiteCurve3 from "../phobos/utils/HermiteCurve3";
 import Ship from "./Ship/Ship";
 import Level from "./Level/Level";
-import useStore from "../store";
 
 type SceneProps = {
   isWorldVisible: boolean;
@@ -66,7 +64,7 @@ const Scene = ({ isWorldVisible, hasMountedScene, setHasMountedScene }: ScenePro
       <Level land={track} scenery={scenery} sky={sky} trackRef={trackRef} />
       {hasMountedScene && (
         <>
-          {spline && ships.children.map((ship, index) => (
+          {spline && ships.children.map((ship: Mesh, index: number) => (
             <Ship
               key={ship.id}
               isPlayer={index === Math.round(ships.children.length / 2)}
