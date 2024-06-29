@@ -14,7 +14,7 @@
 .speed {
   position: absolute;
   bottom: 0;
-  right: 0;
+  right: 2%;
   display: flex;
   place-content: center;
   place-items: center;
@@ -30,6 +30,7 @@
   border: 2px solid rgb(241, 187, 77);
   border-radius: 0;
   border-bottom-right-radius: 20px;
+  padding: 8px 12px;
 }
 
 .positions {

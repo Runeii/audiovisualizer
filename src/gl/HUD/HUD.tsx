@@ -18,7 +18,7 @@ const HUD = () => {
 
       return (
         <div key={index} className={styles.row}>
-          Ship {index + 1}: {Number(currentLoudnessOfPlayer).toFixed(2)}
+          Ship {index + 1} band volume: {Number(currentLoudnessOfPlayer).toFixed(2)}
         </div>
       )
     })

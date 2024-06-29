@@ -9,7 +9,7 @@ type SplineProps = {
   x?: number;
 }
 
-const IS_VISIBLE = true;
+const IS_VISIBLE = false;
 const Spline = forwardRef<HermiteCurve3, SplineProps>(({ spline, track, x = 0 }, ref) => {
   const hasValidSpline = spline && spline.points.length > 0;
 

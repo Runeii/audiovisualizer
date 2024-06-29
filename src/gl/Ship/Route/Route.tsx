@@ -1,11 +1,10 @@
 
-import { useSpring } from "@react-spring/three";
+import { config, useSpring } from "@react-spring/three";
 import { useFrame } from "@react-three/fiber";
 import { RefObject, useRef } from "react";
 import { Vector3 } from "three";
 import HermiteCurve3 from "../../../phobos/utils/HermiteCurve3";
 import useStore from "../../../store";
-import { NUMBER_OF_PLAYERS } from "../../constants";
 import { convertLoudnessToSpeed } from "../utils";
 
 const BASE_MOVEMENT = 0.00007;
@@ -61,6 +60,7 @@ const Route = ({
 
   const [speed] = useSpring(() => ({
     speed: 0,
+    config: config.slow,
   }), []);
 
   // Calculate current speed

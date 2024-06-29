@@ -1,16 +1,18 @@
-import { Color, Mesh, MeshBasicMaterial, Object3D, PlaneGeometry, Texture, Vector2, Vector3 } from "three";
+import { Color, Mesh, MeshBasicMaterial, Object3D, PlaneGeometry, Vector2, Vector3 } from "three";
 import { POLYGON_TYPE, TRACK_FACE_FLAGS } from "../structs";
 import { Face3, Geometry } from "./Geometry";
 import { int32ToColor } from "../utils/utils";
 
-export const __deprecated_createModelFromObject = (object: WipeoutObject, sceneMaterial: MeshBasicMaterial[], spriteCollection: { sprite: Polygon, map: Texture }[]) => {
+// Note: since the initial implementation by Phobos, Three.js deprecated Geometry and Face3 in favor of BufferGeometry and BufferAttributes.
+// Despite being able to rebuild the geometry as Buffer, the UVs were a mess. Rather than spending more time on a behind the scenes change
+// for now I've opted to use Geometry.
+// The following functions are deprecated and should be upgraded to use BufferGeometry and BufferAttributes.
+// There is a version of the previous Three.js Geometry class in the same folder that I have modified to work with modern Three.
+export const __deprecated_createModelFromObject = (object: WipeoutObject, sceneMaterial: MeshBasicMaterial[]) => {
   const model = new Mesh();
   const geometry = new Geometry();
 
-  // Load vertices
-  for (let i = 0; i < object.vertices.length; i++) {
-    geometry.vertices.push(new Vector3(object.vertices[i].x, -object.vertices[i].y, -object.vertices[i].z));
-  }
+  geometry.vertices = object.vertices.map((v) => new Vector3(v.x, -v.y, -v.z));
 
   const whiteColor = new Color(1, 1, 1);
   const nullVector = new Vector2(0, 0);
@@ -98,35 +100,40 @@ export const __deprecated_createTrack = ({
 }) => {
   const geometry = new Geometry();
 
-  vertices.forEach((v) => {
-    geometry.vertices.push(new Vector3(v.x, -v.y, -v.z));
-  })
+  geometry.vertices = vertices.map((v) => new Vector3(v.x, -v.y, -v.z));
 
-  polygons.forEach((f) => {
-    let color = int32ToColor(f.color);
-    const materialIndex = f.tile;
+  const faces = polygons.flatMap(({ color: sourceColor, flags, indices, tile }) => {
+    let color = int32ToColor(sourceColor);
 
-    if (f.flags & TRACK_FACE_FLAGS.BOOST) {
-      //render boost tile as bright blue
+    if (flags & TRACK_FACE_FLAGS.BOOST) {
       color = new Color(0.25, 0.25, 2);
     }
 
-    geometry.faces.push(new Face3(f.indices[0], f.indices[1], f.indices[2], undefined, color, materialIndex));
-    geometry.faces.push(new Face3(f.indices[2], f.indices[3], f.indices[0], undefined, color, materialIndex));
-
-    const flipx = (f.flags & TRACK_FACE_FLAGS.FLIP) ? 1 : 0;
-    geometry.faceVertexUvs[0].push([
-      new Vector2(1 - flipx, 1),
-      new Vector2(0 + flipx, 1),
-      new Vector2(0 + flipx, 0)
-    ]);
-
-    geometry.faceVertexUvs[0].push([
-      new Vector2(0 + flipx, 0),
-      new Vector2(1 - flipx, 0),
-      new Vector2(1 - flipx, 1)
-    ]);
+    return [
+      new Face3(indices[0], indices[1], indices[2], undefined, color, tile),
+      new Face3(indices[2], indices[3], indices[0], undefined, color, tile)
+    ];
   });
+
+  const faceVertexUvs = polygons.flatMap(({ flags }) => {
+    const flipx = (flags & TRACK_FACE_FLAGS.FLIP) ? 1 : 0;
+
+    return [
+      [
+        new Vector2(1 - flipx, 1),
+        new Vector2(0 + flipx, 1),
+        new Vector2(0 + flipx, 0)
+      ],
+      [
+        new Vector2(0 + flipx, 0),
+        new Vector2(1 - flipx, 0),
+        new Vector2(1 - flipx, 1)
+      ]
+    ];
+  });
+
+  geometry.faces = faces;
+  geometry.faceVertexUvs[0] = faceVertexUvs;
 
   geometry.computeFaceNormals();
   geometry.computeFlatVertexNormals();
