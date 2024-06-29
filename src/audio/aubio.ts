@@ -28,6 +28,5 @@ export const start = async (scriptProcessor: ScriptProcessorNode) => {
 }
 
 export const stop = async (scriptProcessor: ScriptProcessorNode) => {
-  console.log('detach')
   scriptProcessor.removeEventListener("audioprocess", handleTempo);
 }

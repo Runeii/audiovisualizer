@@ -69,11 +69,10 @@ const Route = ({
     const bandsPerPlayer = Math.round(24 / NUMBER_OF_PLAYERS);
     const startOfThisPlayerBands = (bandsPerPlayer * playerIndex);
     const currentLoudnessOfPlayer =
-      useStore.getState().loudness.slice(startOfThisPlayerBands, startOfThisPlayerBands + bandsPerPlayer).reduce((acc, val) => acc + val, 0) / 6;
+      useStore.getState().loudness.slice(startOfThisPlayerBands, startOfThisPlayerBands + bandsPerPlayer).reduce((acc, val) => (acc + val), 0) / (bandsPerPlayer / 2);
 
     const currentSpeed = BASE_MOVEMENT * currentLoudnessOfPlayer * tempoMultiplier * speedBoostMultiplier.get();
-
-    speed.speed.start(currentSpeed);
+    speed.speed.start(currentSpeed || 0.00005);
   })
 
   const currentProgress = useRef<number>(0);

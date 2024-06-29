@@ -4,6 +4,7 @@ import { createMeshFaceMaterial, readImage, unpackImages } from "./materials";
 import { loadBinaries } from "./utils/utils";
 import { createCameraSpline } from "./camera";
 import { __deprecated_createTrack } from "./deprecated/__toupgrade";
+import Struct from "./utils/struct";
 
 export const createTrackFromFiles = async (paths: Record<string, string>) => {
   const files = await loadBinaries(paths);
@@ -47,11 +48,18 @@ export const createTrackFromFiles = async (paths: Record<string, string>) => {
   const faceCount = files.faces.byteLength / TrackFace.byteLength;
   const faces = TrackFace.readStructs(files.faces, 0, faceCount);
 
-  const trackTextureCount = files.trackTexture.byteLength / TrackTexture.byteLength;
-  const trackTextures = TrackTexture.readStructs(files.trackTexture, 0, trackTextureCount);
+  let trackTextures: TrackTexture[] = [];
+  if (files.trackTexture) {
+    const trackTextureCount = files.trackTexture.byteLength / TrackTexture.byteLength;
+    trackTextures = TrackTexture.readStructs(files.trackTexture, 0, trackTextureCount);
+  }
 
   const polygonsWithTexturesApplied = faces.map((polygon, index) => {
     const texture = trackTextures[index];
+
+    if (!texture) {
+      return polygon;
+    }
 
     return {
       ...polygon,

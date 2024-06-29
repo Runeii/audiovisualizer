@@ -3,8 +3,8 @@ import { createObjectFromFiles } from './object';
 import { createTrackFromFiles } from './track';
 
 
-export const loadPath = async (path: string) => {
-  const scene = await createObjectFromFiles({
+export const loadPath = async (path: string): Promise<LevelObject> => {
+  const scenery = await createObjectFromFiles({
     textures: `${path}/SCENE.CMP`,
     objects: `${path}/SCENE.PRM`
   });
@@ -41,7 +41,7 @@ export const loadPath = async (path: string) => {
   })
 
   return {
-    scene,
+    scenery,
     ships,
     sky,
     spline,

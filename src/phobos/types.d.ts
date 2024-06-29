@@ -135,3 +135,11 @@ type Polygon = {
   width?: number; // For SPRITE_TOP_ANCHOR
   height?: number; // For SPRITE_TOP_ANCHOR
 };
+
+type LevelObject = {
+  scenery: Mesh;
+  sky: Mesh;
+  ships: Mesh;
+  track: Mesh;
+  spline: HermiteCurve3;
+}

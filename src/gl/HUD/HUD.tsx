@@ -14,7 +14,7 @@ const HUD = () => {
 
     return [...new Array(NUMBER_OF_PLAYERS)].map((_, index) => {
       const startOfThisPlayerBands = (bandsPerPlayer * index);
-      const currentLoudnessOfPlayer = loudness.slice(startOfThisPlayerBands, startOfThisPlayerBands + bandsPerPlayer).reduce((acc, val) => acc + val, 0) / 6;
+      const currentLoudnessOfPlayer = loudness.slice(startOfThisPlayerBands, startOfThisPlayerBands + bandsPerPlayer).reduce((acc, val) => acc + val, 0) / (bandsPerPlayer / 2);
 
       return (
         <div key={index} className={styles.row}>

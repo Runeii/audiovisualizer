@@ -17,7 +17,7 @@ export const loadBinaries = async (paths: Record<string, string>) => {
   const entries = await Promise.all(
     Object.entries(paths).map(async ([key, path]) => [key, await loadBinary(path)])
   );
-  return Object.fromEntries(entries);
+  return Object.fromEntries(entries.filter(([, value]) => value !== undefined));
 };
 
 const createSprite = (polygon: Polygon, map: Texture, vertex: Vertex) => {
@@ -211,4 +211,11 @@ export const createBufferGeometryDataFromPolygons = ({ isQuad, dataOrder, polygo
     indices,
     positions,
   }
+}
+
+export const normalizeArray = (arr: number[]) => {
+  const min = Math.min(...arr);
+  const max = Math.max(...arr);
+
+  return arr.map(x => (x - min) / (max - min));
 }

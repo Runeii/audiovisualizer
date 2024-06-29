@@ -2,6 +2,7 @@ import Meyda, { MeydaFeaturesObject } from "meyda";
 import useStore from "../store";
 import ValueTracker from "./ValueTracker";
 import { MeydaAnalyzer } from "meyda/dist/esm/meyda-wa";
+import { normalizeArray } from "../phobos/utils/utils";
 
 const BUFFER_SIZE = 16384;
 
@@ -40,7 +41,7 @@ const handleExtractors = (features: MeydaFeaturesObject, loudnessTracker: ValueT
   console.log(features.loudness)
   */
   useStore.setState({
-    loudness: [...features.loudness.specific],
+    loudness: normalizeArray([...features.loudness.specific]),
   });
 }
 

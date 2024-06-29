@@ -6,21 +6,25 @@ import { Tracks } from "../phobos/constants";
 import HermiteCurve3 from "../phobos/utils/HermiteCurve3";
 import Ship from "./Ship/Ship";
 import Level from "./Level/Level";
+import useStore from "../store";
 
-const Scene = () => {
-  const [hasMountedScene, setHasMountedScene] = useState(false);
-  const [objects, setObjects] = useState<Record<string, Mesh>>();
-  const [spline, setSpline] = useState<HermiteCurve3>();
+type SceneProps = {
+  isWorldVisible: boolean;
+  hasMountedScene: boolean;
+  setHasMountedScene: (hasMountedScene: boolean) => void;
+}
+const Scene = ({ isWorldVisible, hasMountedScene, setHasMountedScene }: SceneProps) => {
+  const [objects, setObjects] = useState<LevelObject[]>();
+
+  const [currentTrack, setCurrentTrack] = useState(0);
 
   useEffect(() => {
     if (objects) {
       return;
     }
-    const index = Math.round(Tracks.Wipeout2097.length * Math.random());
-    loadPath(Tracks.Wipeout2097[index].path).then(({ spline, sky, scene, ships, track }) => {
-      setObjects({ land: track, scenery: scene, sky, ships });
-      setSpline(spline)
-    });
+    Promise.all([...new Array(Tracks.Wipeout2097.length)].map(async (_, index) => loadPath(Tracks.Wipeout2097[index].path))).then((results) => {
+      setObjects(results);
+    })
   }, [objects]);
 
   useFrame(({camera, scene}) => {
@@ -41,24 +45,36 @@ const Scene = () => {
     setHasMountedScene(true);
   })
 
-  if (!objects) {
+  useEffect(() => {
+    if (!isWorldVisible) {
+      return;
+    }
+    setCurrentTrack(current => (current + 1) % Tracks.Wipeout2097.length);
+    return () => {
+      setHasMountedScene(false);
+    }
+  }, [isWorldVisible, setHasMountedScene]);
+
+  if (!objects || !objects[currentTrack] || !isWorldVisible) {
     return null;
   }
 
+  const { scenery, sky, ships, spline, track } = objects[currentTrack];
+
   return (
     <>
-      <Level land={objects.land} scenery={objects.scenery} sky={objects.sky} trackRef={trackRef} />
+      <Level land={track} scenery={scenery} sky={sky} trackRef={trackRef} />
       {hasMountedScene && (
         <>
-          {spline && objects.ships.children.map((ship, index) => (
+          {spline && ships.children.map((ship, index) => (
             <Ship
               key={ship.id}
-              isPlayer={index === Math.round(objects.ships.children.length / 2)}
+              isPlayer={index === Math.round(ships.children.length / 2)}
               playerIndex={index}
               mesh={ship as Mesh}
               spline={spline}
-              track={objects.land}
-              x={(index - objects.ships.children.length / 2) * 750}
+              track={track}
+              x={(index - ships.children.length / 2) * 750}
             />
           ))}
         </>
