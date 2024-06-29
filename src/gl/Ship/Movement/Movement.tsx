@@ -4,6 +4,7 @@ import { useFrame } from "@react-three/fiber";
 import { clamp } from "three/src/math/MathUtils.js";
 import { RefObject } from "react";
 import { useSpring } from "@react-spring/three";
+import { SHIP_HOVER_HEIGHT } from "../../constants";
 
 const ROLL_STRENGTH = 1;
 const ROLL_MAX = 0.5;
@@ -43,7 +44,7 @@ const Movement = ({
 
     // Set ship values
     shipRef.current.position.copy(currentSplinePosition);
-    shipRef.current.position.y += 150;
+    shipRef.current.position.y += SHIP_HOVER_HEIGHT;
 
     // Look at the next point
     const lookAtMatrix = new Matrix4();

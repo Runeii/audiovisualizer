@@ -9,6 +9,7 @@ import Spline from "./Spline/Spline";
 import Level from "./Level/Level";
 
 const Scene = () => {
+  const [hasMountedScene, setHasMountedScene] = useState(false);
   const [objects, setObjects] = useState<Record<string, Mesh>>();
   const [spline, setSpline] = useState<HermiteCurve3>();
 
@@ -31,9 +32,18 @@ const Scene = () => {
     });
   });
 
+  const trackRef = useRef<Mesh>(null);
   const playerSpline = useRef<HermiteCurve3>(null);
   const ship1Spline = useRef<HermiteCurve3>(null);
   const ship2Spline = useRef<HermiteCurve3>(null);
+
+  useFrame(() => {
+    if (hasMountedScene || !trackRef.current) {
+      return;
+    }
+    
+    setHasMountedScene(true);
+  })
 
   if (!objects) {
     return null;
@@ -41,13 +51,17 @@ const Scene = () => {
 
   return (
     <>
-      <Level land={objects.land} scenery={objects.scenery} sky={objects.sky} />
-     <Ship mesh={objects.ships.children[1]} splineRef={playerSpline} speed={1} track={objects.land} />
-     <Ship isPlayer mesh={objects.ships.children[0]} splineRef={ship2Spline} speed={1} track={objects.land} />
-     <Ship mesh={objects.ships.children[2]} splineRef={ship1Spline} speed={1} track={objects.land} />
-     <Spline spline={spline} ref={playerSpline} />
-     <Spline spline={spline} ref={ship1Spline} x={600} />
-     <Spline spline={spline} ref={ship2Spline} x={-800} />
+      <Level land={objects.land} scenery={objects.scenery} sky={objects.sky} trackRef={trackRef} />
+      {hasMountedScene && (
+        <>
+          <Ship mesh={objects.ships.children[1]} splineRef={playerSpline} speed={1} track={objects.land} />
+          <Ship isPlayer mesh={objects.ships.children[0]} splineRef={ship2Spline} speed={1} track={objects.land} />
+          <Ship mesh={objects.ships.children[2]} splineRef={ship1Spline} speed={1} track={objects.land} />
+          <Spline spline={spline} ref={playerSpline} trackRef={trackRef} />
+          <Spline spline={spline} ref={ship1Spline} trackRef={trackRef} x={600} />
+          <Spline spline={spline} ref={ship2Spline} trackRef={trackRef} x={-800} />
+        </>
+      )}
     </>
   );
 }

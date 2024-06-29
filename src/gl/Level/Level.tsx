@@ -1,13 +1,14 @@
 import { useFrame } from "@react-three/fiber";
-import { useMemo } from "react";
+import { RefObject, useMemo } from "react";
 import { Color, Mesh } from "three";
 
 type LevelProps = {
   land: Mesh;
   scenery: Mesh;
   sky: Mesh;
+  trackRef: RefObject<Mesh>;
 }
-const Level = ({ land, scenery, sky }: LevelProps) => {
+const Level = ({ land, scenery, sky, trackRef }: LevelProps) => {
   const weaponTileMaterial = useMemo(() => {
     if (!land.material) {
       return;
@@ -29,7 +30,7 @@ const Level = ({ land, scenery, sky }: LevelProps) => {
 
   return (
     <>
-      <primitive object={land} />
+      <primitive object={land} ref={trackRef} />
       <primitive object={scenery} />
       <primitive object={sky} scale={48} />
     </>
