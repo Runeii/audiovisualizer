@@ -16,6 +16,7 @@ const normalize = (value: number, min: number, max: number) => {
 };
 
 const handleExtractors = (features: MeydaFeaturesObject, loudnessTracker: ValueTracker) => {
+  /*
   // Normalise zcr
   const maxZcr = (BUFFER_SIZE / 2) - 1;
   const normalisedZcr = normalize(features.zcr, 0, maxZcr);
@@ -36,11 +37,10 @@ const handleExtractors = (features: MeydaFeaturesObject, loudnessTracker: ValueT
 
   // Calculate speed factor
   const speedFactor = (0.25 * normalisedZcr) + (0.5 * normalisedSpectralCentroid) + (0.5 * normalisedLoudness);
-
+  console.log(features.loudness)
+  */
   useStore.setState({
-    speed: speedFactor,
-    //energy: features.energy / BUFFER_SIZE,
-    //loudness: loudnessTracker.getLargestValue() ? features.loudness.total / loudnessTracker.getLargestValue() : 0,
+    loudness: [...features.loudness.specific],
   });
 }
 
@@ -52,7 +52,7 @@ export const start = async (source: MediaStreamAudioSourceNode) => {
     audioContext: source.context,
     source: source,
     bufferSize: BUFFER_SIZE,
-    featureExtractors: ["zcr", "spectralCentroid", "loudness"],
+    featureExtractors: ["loudness"],
     callback: (features: MeydaFeaturesObject) => handleExtractors(features, loudnessTracker),
   });
 

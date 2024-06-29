@@ -1,22 +1,26 @@
 import { Mesh, Vector3 } from "three";
 import HermiteCurve3 from "../../phobos/utils/HermiteCurve3";
 import { useFrame } from "@react-three/fiber";
-import { MutableRefObject, useMemo, useRef, useState } from "react";
+import {  useMemo, useRef, useState } from "react";
 import Movement from "./Movement/Movement";
 import Camera from "./Camera/Camera";
 import Shadow from "./Shadow/Shadow";
 import Route from "./Route/Route";
 import { TILE_TYPES, queryCurrentTile } from "./utils";
+import Spline from "./Spline/Spline";
 
 type ShipProps = {
+  playerIndex: number;
   isPlayer: boolean;
   mesh?: Mesh;
-  splineRef: MutableRefObject<HermiteCurve3>;
+  spline: HermiteCurve3;
   track: Mesh;
+  x: number;
 }
 
-const Ship = ({ isPlayer = false, mesh, splineRef, track }: ShipProps) => {
+const Ship = ({ isPlayer = false, mesh, playerIndex, spline, track, x }: ShipProps) => {
   const shipRef = useRef<Mesh>(null);
+  const splineRef = useRef<HermiteCurve3>(null);
 
   const shipMesh = useMemo(() => mesh?.clone(), [mesh]);
 
@@ -45,8 +49,9 @@ const Ship = ({ isPlayer = false, mesh, splineRef, track }: ShipProps) => {
 
   return (
     <primitive object={shipMesh} ref={shipRef} scale={1.5}>
+      <Spline spline={spline} ref={splineRef} track={track} x={x} />
       <Route
-        isPlayer={isPlayer}
+        playerIndex={playerIndex}
         splineRef={splineRef}
         speedBoostLastTouched={speedBoostLastTouched}
         setCurrentSplinePosition={setCurrentSplinePosition}

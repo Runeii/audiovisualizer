@@ -3,6 +3,7 @@ import { OrbitControls } from '@react-three/drei';
 import useStore from '../store';
 import Scene from './Scene';
 import Debug from './Debug/Debug';
+import HUD from './HUD/HUD';
 
 const World = () => {
   const tempo = useStore(state => state.tempo);
@@ -17,6 +18,7 @@ const World = () => {
     }}>
       <Scene />
       <OrbitControls />
+      <HUD />
       <Debug />
     </Canvas>
   );

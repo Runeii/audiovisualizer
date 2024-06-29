@@ -1,0 +1,33 @@
+.hud {
+  pointer-events: none;
+  font-family: "2097";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  pointer-events: none;
+  display: grid;
+}
+
+.speed {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  display: flex;
+  place-content: center;
+  place-items: center;
+  font-size: 160px;
+}
+
+.bpm {
+  font-size: 24px;
+  line-height: 1;
+  display: flex;
+  place-content: center;
+  place-items: center;
+  border: 2px solid rgb(241, 187, 77);
+  border-radius: 0;
+  border-bottom-right-radius: 20px;
+}

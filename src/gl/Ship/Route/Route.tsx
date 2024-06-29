@@ -1,10 +1,11 @@
 
 import { useSpring } from "@react-spring/three";
 import { useFrame } from "@react-three/fiber";
-import { MutableRefObject, useRef } from "react";
+import { RefObject, useRef } from "react";
 import { Vector3 } from "three";
 import HermiteCurve3 from "../../../phobos/utils/HermiteCurve3";
 import useStore from "../../../store";
+import { NUMBER_OF_PLAYERS } from "../../constants";
 
 const BASE_MOVEMENT = 0.00007;
 const LOOKAHEAD_DISTANCE = 0.004;
@@ -12,8 +13,8 @@ const LOOKAHEAD_DISTANCE = 0.004;
 const TARGET_BPM = 120;
 
 type RouteProps = {
-  isPlayer: boolean;
-  splineRef: MutableRefObject<HermiteCurve3>;
+  playerIndex: number;
+  splineRef: RefObject<HermiteCurve3>;
   speedBoostLastTouched: number;
   setCurrentSplinePosition: (position: Vector3) => void;
   setCurrentSplineTangent: (tangent: Vector3) => void;
@@ -23,7 +24,7 @@ type RouteProps = {
 };
 
 const Route = ({
-  isPlayer,
+  playerIndex,
   splineRef,
   speedBoostLastTouched,
   setCurrentSplinePosition,
@@ -59,19 +60,19 @@ const Route = ({
     speed: 0,
   }), []);
 
-  const tempo = useStore(state => state.tempo);
-
   // Calculate current speed
   useFrame(() => {
+    const tempo = useStore.getState().tempo;
     const tempoMultiplier = tempo / TARGET_BPM;
-    
-    let currentSpeed = BASE_MOVEMENT * tempoMultiplier * speedBoostMultiplier.get();
   
-    if (!isPlayer) {
-      currentSpeed *= (Math.random() + 0.5);
-    }
+    // 24 bands of loudness 
+    const bandsPerPlayer = Math.round(24 / NUMBER_OF_PLAYERS);
+    const startOfThisPlayerBands = (bandsPerPlayer * playerIndex);
+    const currentLoudnessOfPlayer =
+      useStore.getState().loudness.slice(startOfThisPlayerBands, startOfThisPlayerBands + bandsPerPlayer).reduce((acc, val) => acc + val, 0) / 6;
 
-    window.debug = `tempo: ${tempo}, tempoMultiplier: ${tempoMultiplier}, speedBoostMultiplier: ${speedBoostMultiplier.get()}`;
+    const currentSpeed = BASE_MOVEMENT * currentLoudnessOfPlayer * tempoMultiplier * speedBoostMultiplier.get();
+
     speed.speed.start(currentSpeed);
   })
 
