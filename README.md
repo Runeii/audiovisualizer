@@ -14,6 +14,11 @@ A staging demo exists here: https://wipeout.netlify.app/
 
 However this is **not currently usable by the public**. This is to avoid redistributing the original source files.
 
+An demo of its current state is available here:
+
+https://github.com/user-attachments/assets/b7cba613-a8c4-456c-af9f-5e1c944addf9
+
+
 
 ## Current status
 
@@ -32,5 +37,6 @@ First of all, the parsing and reconstruction of the original source files is a r
 The scene is laid out and manipulated using React Three Fiber.
 
 A variety of tools are used in a worker thread to handle the audio processing.
+
 
 
