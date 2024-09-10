@@ -14,7 +14,7 @@ A staging demo exists here: https://wipeout.netlify.app/
 
 However this is **not currently usable by the public**. This is to avoid redistributing the original source files.
 
-An demo of its current state is available here:
+An demo of its current state is available here (audio ON):
 
 https://github.com/user-attachments/assets/b7cba613-a8c4-456c-af9f-5e1c944addf9
 
