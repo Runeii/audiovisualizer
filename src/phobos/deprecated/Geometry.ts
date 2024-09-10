@@ -1,3 +1,6 @@
+/* eslint-disable */
+// @ts-nocheck
+
 import { Matrix4, Object3D, Vector3, EventDispatcher, BufferGeometry, Float32BufferAttribute, MathUtils, Matrix3, Color, Box3, Sphere, BufferAttribute, Vector2 } from "three";
 const _m1 = new Matrix4();
 const _obj = new Object3D();

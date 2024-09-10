@@ -1,3 +1,6 @@
+/* eslint-disable */
+// @ts-nocheck
+
 import { Color, Mesh, MeshBasicMaterial, Object3D, PlaneGeometry, Vector2, Vector3 } from "three";
 import { POLYGON_TYPE, TRACK_FACE_FLAGS } from "../structs";
 import { Face3, Geometry } from "./Geometry";
